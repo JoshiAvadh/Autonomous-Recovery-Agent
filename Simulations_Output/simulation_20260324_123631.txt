@@ -1,0 +1,296 @@
+============================================================
+  DISTRIBUTED SYSTEM SIMULATION LOG
+  Started: 2026-03-24 12:36:26
+============================================================
+============================================================
+  DISTRIBUTED SYSTEM SIMULATION LOG
+  Started: 2026-03-24 12:36:26
+============================================================
+
+ Building cluster with 5 nodes...
+[INIT] LLM calls: synchronous (ensures decisions arrive at correct sim time)
+ Starting self-healing simulation (5 nodes)...
+
+==================================================
+[t=10.0] Cluster Status:
+  N1 (Primary): failed | health=0% | load=0% | q=0 | lag=0
+  N2 (Replica): healthy | health=100% | load=43% | q=0 | lag=0
+  N3 (Replica): healthy | health=100% | load=21% | q=0 | lag=0
+  N4 (Worker): healthy | health=100% | load=5% | q=0
+  N5 (Gateway): healthy | health=100% | load=46% | q=0
+==================================================
+
+[t=10.0] Failure detected: crash on N1
+[t=10.0] [ROUTER] confidence=85% → TIER-1/RULE (standard case)
+[t=10.0] Rule-Based Decision: [RULE] Action: promote_replica on N1 → Result: Promoted N2 to Primary
+
+-- LLM Decision at t=10.0 ---------
+  Failure : crash on N1
+  Decision:
+    [RULE] Action: promote_replica on N1 → Result: Promoted N2 to Primary
+[t=15.0] [SCORE] N2: total=78 (speed=70, stability=70, cascade=100, delivery=70) source=rule
+
+==================================================
+[t=20.0] Cluster Status:
+  N1 (Replica): healthy | health=100% | load=19% | q=0 | lag=0
+  N2 (Replica): healthy | health=100% | load=37% | q=0 | lag=0
+  N3 (Primary): healthy | health=100% | load=26% | q=0 | lag=0
+  N4 (Worker): healthy | health=100% | load=2% | q=0
+  N5 (Gateway): healthy | health=100% | load=50% | q=0
+==================================================
+
+[t=25.0] Failure detected: network_partition on N2<->N3
+[t=25.0] [ROUTER] confidence=85% → TIER-1/RULE (cluster is healthy — straightforward recovery)
+[t=25.0] Rule-Based Decision: [RULE] Action: rebalance_load on N2<->N3 → Result: Rebalanced to 28%
+
+-- LLM Decision at t=25.0 ---------
+  Failure : network_partition on N2<->N3
+  Decision:
+    [RULE] Action: rebalance_load on N2<->N3 → Result: Rebalanced to 28%
+
+[t=26.0] Failure detected: memory_leak on N4
+[t=26.0] [ROUTER] confidence=70% → TIER-2/LLM+VALIDATE (cluster is healthy — straightforward recovery)
+
+[t=26.0] LLM Decision: [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N4 -- The affected node N4 is still healthy with 100% health and the cluster is currently in a stable state with all nodes healthy and a balanced load, so no immediate action is necessary. -> Result: Monitoring -- no action taken
+
+-- LLM Decision at t=26.0 ---------
+  Failure : memory_leak on N4
+  Decision:
+    [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N4 -- The affected node N4 is still healthy with 100% health and the cluster is currently in a stable state with all nodes healthy and a balanced load, so no immediate action is necessary. -> Result: Monitoring -- no action taken
+
+==================================================
+[t=30.0] Cluster Status:
+  N1 (Replica): healthy | health=100% | load=26% | q=0 | lag=0
+  N2 (Replica): healthy | health=100% | load=29% | q=1 | lag=0
+  N3 (Primary): healthy | health=100% | load=35% | q=0 | lag=0
+  N4 (Worker): healthy | health=91% | load=31% | q=0
+  N5 (Gateway): healthy | health=100% | load=25% | q=0
+==================================================
+[t=30.0] [SCORE] N2<->N3: total=77 (speed=70, stability=70, cascade=100, delivery=66) source=rule
+
+[t=30.0] Failure detected: latency_spike on network
+[t=30.0] [ROUTER] confidence=90% → TIER-1/RULE (cluster is healthy — straightforward recovery)
+[t=30.0] Rule-Based Decision: [RULE] Action: rebalance_load on network → Result: Rebalanced to 29%
+
+-- LLM Decision at t=30.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [RULE] Action: rebalance_load on network → Result: Rebalanced to 29%
+[t=31.0] [SCORE] N4: total=52 (speed=0, stability=70, cascade=100, delivery=66) source=llm
+[t=35.0] [SCORE] network: total=77 (speed=70, stability=70, cascade=100, delivery=67) source=rule
+
+==================================================
+[t=40.0] Cluster Status:
+  N1 (Replica): healthy | health=100% | load=36% | q=0 | lag=0
+  N2 (Replica): healthy | health=100% | load=29% | q=0 | lag=0
+  N3 (Primary): healthy | health=100% | load=40% | q=0 | lag=0
+  N4 (Worker): healthy | health=61% | load=27% | q=0
+  N5 (Gateway): healthy | health=100% | load=26% | q=0
+==================================================
+
+[t=40.0] Failure detected: latency_spike on network
+[t=40.0] [ROUTER] confidence=90% → TIER-1/RULE (cluster is healthy — straightforward recovery)
+[t=40.0] Rule-Based Decision: [RULE] Action: rebalance_load on network → Result: Rebalanced to 31%
+
+-- LLM Decision at t=40.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [RULE] Action: rebalance_load on network → Result: Rebalanced to 31%
+
+[t=43.0] Failure detected: memory_leak_early on N4
+[t=43.0] [ROUTER] confidence=55% → TIER-2/LLM+VALIDATE (health=49% — ambiguous restart vs isolate zone)
+
+[t=43.0] LLM Decision: [HIGH] [80% confident] [LLM OVERRIDE] Action: restart_node on N4 -- N4 is degraded with a health of 49% due to a memory leak, and restarting it will clear its memory and restore its health to around 90%, allowing it to recover quickly and rejoin the cluster. -> Result: Restarted N4 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=43.0 ---------
+  Failure : memory_leak_early on N4
+  Decision:
+    [HIGH] [80% confident] [LLM OVERRIDE] Action: restart_node on N4 -- N4 is degraded with a health of 49% due to a memory leak, and restarting it will clear its memory and restore its health to around 90%, allowing it to recover quickly and rejoin the cluster. -> Result: Restarted N4 -- memory cleared, queue drained, health restored to 90%
+[t=45.0] [SCORE] network: total=78 (speed=70, stability=70, cascade=100, delivery=71) source=rule
+[t=48.0] [SCORE] N4: total=77 (speed=70, stability=70, cascade=100, delivery=68) source=llm
+
+==================================================
+[t=50.0] Cluster Status:
+  N1 (Replica): healthy | health=100% | load=36% | q=0 | lag=0
+  N2 (Replica): healthy | health=100% | load=37% | q=0 | lag=0
+  N3 (Primary): healthy | health=100% | load=24% | q=0 | lag=0
+  N4 (Worker): healthy | health=87% | load=21% | q=0
+  N5 (Gateway): healthy | health=100% | load=41% | q=0
+==================================================
+
+[t=51.0] Failure detected: crash on N3
+[t=51.0] [ROUTER] confidence=85% → TIER-1/RULE (standard case)
+[t=51.0] Rule-Based Decision: [RULE] Action: promote_replica on N3 → Result: Promoted N1 to Primary
+
+-- LLM Decision at t=51.0 ---------
+  Failure : crash on N3
+  Decision:
+    [RULE] Action: promote_replica on N3 → Result: Promoted N1 to Primary
+
+[t=54.0] Failure detected: cpu_overload on N5
+[t=54.0] [ROUTER] confidence=60% → TIER-2/LLM+VALIDATE (2 nodes degraded/failed — cascade risk; only 3 healthy nodes)
+
+[t=54.0] LLM Decision: [HIGH] [90% confident] [LLM OVERRIDE] Action: reroute_traffic on N5 -- N5 is experiencing cpu_overload with a high load of 88% and is in a degraded state, so rerouting traffic from it will help alleviate the overload and prevent further degradation -> Result: Rerouted 44% load from N5 to 3 nodes
+
+-- LLM Decision at t=54.0 ---------
+  Failure : cpu_overload on N5
+  Decision:
+    [HIGH] [90% confident] [LLM OVERRIDE] Action: reroute_traffic on N5 -- N5 is experiencing cpu_overload with a high load of 88% and is in a degraded state, so rerouting traffic from it will help alleviate the overload and prevent further degradation -> Result: Rerouted 44% load from N5 to 3 nodes
+[t=56.0] [SCORE] N1: total=69 (speed=70, stability=35, cascade=100, delivery=71) source=rule
+[t=59.0] [SCORE] N5: total=85 (speed=70, stability=100, cascade=100, delivery=71) source=llm
+
+==================================================
+[t=60.0] Cluster Status:
+  N1 (Replica): healthy | health=100% | load=59% | q=0 | lag=0
+  N2 (Primary): healthy | health=100% | load=50% | q=0 | lag=0
+  N3 (Replica): healthy | health=95% | load=18% | q=0 | lag=0
+  N4 (Worker): healthy | health=87% | load=46% | q=0
+  N5 (Gateway): healthy | health=100% | load=43% | q=0
+==================================================
+
+[t=62.0] Failure detected: latency_spike on network
+[t=62.0] [ROUTER] confidence=90% → TIER-1/RULE (cluster is healthy — straightforward recovery)
+[t=62.0] Rule-Based Decision: [RULE] Action: rebalance_load on network → Result: Rebalanced to 43%
+
+-- LLM Decision at t=62.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [RULE] Action: rebalance_load on network → Result: Rebalanced to 43%
+
+[t=63.0] Failure detected: cpu_overload on N2
+[t=63.0] [ROUTER] confidence=90% → TIER-1/RULE (standard case)
+[t=63.0] Rule-Based Decision: [RULE] Action: reroute_traffic on N2 → Result: Reduced N2 load to 65%
+
+-- LLM Decision at t=63.0 ---------
+  Failure : cpu_overload on N2
+  Decision:
+    [RULE] Action: reroute_traffic on N2 → Result: Reduced N2 load to 65%
+[t=67.0] [SCORE] network: total=69 (speed=70, stability=35, cascade=100, delivery=71) source=rule
+[t=68.0] [SCORE] N2: total=84 (speed=70, stability=95, cascade=100, delivery=71) source=rule
+
+==================================================
+[t=70.0] Cluster Status:
+  N1 (Replica): healthy | health=100% | load=34% | q=0 | lag=1
+  N2 (Primary): healthy | health=100% | load=43% | q=2 | lag=0
+  N3 (Replica): healthy | health=100% | load=44% | q=0 | lag=1
+  N4 (Worker): healthy | health=87% | load=29% | q=0
+  N5 (Gateway): healthy | health=100% | load=40% | q=0
+==================================================
+
+==================================================
+  SIMULATION METRICS
+==================================================
+  Total LLM decisions:    10
+  LLM novel overrides:    3
+  Rule echoes:            0
+  Avg MTTR:               5.7 ticks
+  Failures resolved:      9/9
+  Message delivery:       97.1%
+  Commit success:         90.0% (18/20)
+  Request timeout rate:   1.2% (1 timeouts)
+  Timeout events:         5
+  Stale read rate:        3.4% (2 stale reads)
+  Quorum unavailable:     6.0 ticks
+  Leader elections:       2
+  Split-brain events:     2
+==================================================
+
+========================================================
+  DECISION SCORING: LLM vs RULE ENGINE
+========================================================
+Metric                       LLM            Rules         
+--------------------------------------------------------
+  Decisions scored           3              7             
+  Avg total score            71.5           75.8          
+  Avg speed score            46.7           70.0          
+  Avg stability score        80.0           63.6          
+  Avg cascade score          100.0          100.0         
+  Avg delivery score         68.0           69.3          
+  Avg MTTR (ticks)           5.0            5.0           
+  Resolved %                 66.7           100.0         
+  Diverged from rules        2              0             
+
+  ★ LLM and rules perform similarly (delta=-4.3)
+========================================================
+
+========================================================
+  SCORE SUMMARY BY SOURCE
+========================================================
+  llm          count=3   avg_total=71.5  avg_mttr=5.0   resolved=66.7% diverged=2
+  rule         count=7   avg_total=75.8  avg_mttr=5.0   resolved=100.0% diverged=0
+========================================================
+
+ Final Analysis:
+The resilience score for this system is 8 out of 10, justified by the fact that despite experiencing 9 failures, the system was able to resolve all of them, with an average Mean Time To Recovery (MTTR) of 5.7 simulation ticks, and maintained a message delivery rate of 97.1%, indicating a high level of overall system resilience.
+
+Three things that worked well in this system are: the promotion of N2 to Primary at t=10, which was triggered by a RULE decision to promote a replica after N1 crashed, demonstrating the effectiveness of automated failover mechanisms; the rebalancing of load on the network at t=30.0, also triggered by a RULE decision, which helped to mitigate the impact of a latency spike; and the restart of N4 at t=43.0, decided by an LLM, which successfully cleared the memory leak and restored the node's health to 90%, showcasing the potential benefits of using machine learning models for node management.
+
+Three weaknesses identified in the system are: the crash of N1 at t=10.0, which although resolved, highlights the vulnerability of individual nodes to failures; the network partition between N2 and N3 at t=25.0, which could have been mitigated with more robust network redundancy or partition detection mechanisms; and the cpu_overload on N5 at t=54.0, which suggests that the system's load balancing and resource allocation strategies could be improved to prevent such overloads.
+
+To address these weaknesses, three concrete improvement suggestions are: implementing more robust node-level redundancy, such as having additional replicas or using different types of nodes with diverse failure characteristics, to reduce the impact of single node failures like the one observed at t=10.0; enhancing network partition detection and mitigation strategies to quickly identify and resolve partitions like the one at t=25.0; and developing more sophisticated load balancing algorithms that can dynamically adjust to changing system conditions, such as the cpu_overload on N5 at t=54.0, to prevent overloads and ensure more efficient resource utilization.
+
+Comparing LLM vs Rule decision quality, the data shows that RULE decisions had an average score of 75.8, with 100% resolution rate and 0% divergence from rules, indicating high effectiveness and adherence to predefined rules. In contrast, LLM decisions had an average score of 71.5, with a 66.7% resolution rate and 2 instances of divergence from rules, suggesting that while LLMs can make valuable decisions, such as the restart of N4 at t=43.0, their performance and consistency may vary, and they may not always align with predefined rules or achieve the desired outcomes.
+
+============================================================
+  FINAL REPORT
+============================================================
+
+── LLM Analysis ──────────────────────────────────────
+The resilience score for this system is 8 out of 10, justified by the fact that despite experiencing 9 failures, the system was able to resolve all of them, with an average Mean Time To Recovery (MTTR) of 5.7 simulation ticks, and maintained a message delivery rate of 97.1%, indicating a high level of overall system resilience.
+
+Three things that worked well in this system are: the promotion of N2 to Primary at t=10, which was triggered by a RULE decision to promote a replica after N1 crashed, demonstrating the effectiveness of automated failover mechanisms; the rebalancing of load on the network at t=30.0, also triggered by a RULE decision, which helped to mitigate the impact of a latency spike; and the restart of N4 at t=43.0, decided by an LLM, which successfully cleared the memory leak and restored the node's health to 90%, showcasing the potential benefits of using machine learning models for node management.
+
+Three weaknesses identified in the system are: the crash of N1 at t=10.0, which although resolved, highlights the vulnerability of individual nodes to failures; the network partition between N2 and N3 at t=25.0, which could have been mitigated with more robust network redundancy or partition detection mechanisms; and the cpu_overload on N5 at t=54.0, which suggests that the system's load balancing and resource allocation strategies could be improved to prevent such overloads.
+
+To address these weaknesses, three concrete improvement suggestions are: implementing more robust node-level redundancy, such as having additional replicas or using different types of nodes with diverse failure characteristics, to reduce the impact of single node failures like the one observed at t=10.0; enhancing network partition detection and mitigation strategies to quickly identify and resolve partitions like the one at t=25.0; and developing more sophisticated load balancing algorithms that can dynamically adjust to changing system conditions, such as the cpu_overload on N5 at t=54.0, to prevent overloads and ensure more efficient resource utilization.
+
+Comparing LLM vs Rule decision quality, the data shows that RULE decisions had an average score of 75.8, with 100% resolution rate and 0% divergence from rules, indicating high effectiveness and adherence to predefined rules. In contrast, LLM decisions had an average score of 71.5, with a 66.7% resolution rate and 2 instances of divergence from rules, suggesting that while LLMs can make valuable decisions, such as the restart of N4 at t=43.0, their performance and consistency may vary, and they may not always align with predefined rules or achieve the desired outcomes.
+
+── Failure History ───────────────────────────────────
+  [ 10.0] crash                on N1           (resolved@t=15.0, MTTR=5.0)
+  [ 25.0] network_partition    on N2<->N3      (resolved@t=29.0, MTTR=4.0)
+  [ 26.0] memory_leak          on N4           (resolved@t=43.0, MTTR=17.0)
+  [ 30.0] latency_spike        on network      (resolved@t=33.0, MTTR=3.0)
+  [ 40.0] latency_spike        on network      (resolved@t=43.0, MTTR=3.0)
+  [ 51.0] crash                on N3           (resolved@t=56.0, MTTR=5.0)
+  [ 54.0] cpu_overload         on N5           (resolved@t=59.0, MTTR=5.0)
+  [ 62.0] latency_spike        on network      (resolved@t=66.0, MTTR=4.0)
+  [ 63.0] cpu_overload         on N2           (resolved@t=68.0, MTTR=5.0)
+
+  Total: 9 | Active: 0 | Resolved: 9
+
+  Avg MTTR: 5.7 ticks across 9 resolved failures
+
+── Final Node States ─────────────────────────────────
+  N1 (Replica ): status=healthy    health=100% load=32% [FULLY RESTORED]
+  N2 (Primary ): status=healthy    health=100% load=51% [FULLY RESTORED]
+  N3 (Replica ): status=healthy    health=100% load=38% [FULLY RESTORED]
+  N4 (Worker  ): status=healthy    health=87% load=32%
+  N5 (Gateway ): status=healthy    health=100% load=40% [FULLY RESTORED]
+
+── Final Network Stats ───────────────────────────────
+  total_messages: 175
+  delivered: 170
+  dropped: 5
+  success_rate: 97.1%
+  requests_total: 82
+  requests_completed: 77
+  request_timeouts: 1
+  timeout_events: 5
+  timeout_rate: 1.2%
+  writes_attempted: 20
+  writes_committed: 18
+  commit_rate: 90.0%
+  reads_completed: 59
+  stale_reads: 2
+  stale_read_rate: 3.4%
+  request_retries: 4
+  quorum_available_ticks: 68.0
+  quorum_unavailable_ticks: 6.0
+  leader_elections: 2
+  split_brain_events: 2
+  current_primary: N2
+  commit_index: 18
+
+  Completed: 2026-03-24 12:36:31
+============================================================

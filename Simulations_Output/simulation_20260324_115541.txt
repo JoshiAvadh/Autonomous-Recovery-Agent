@@ -1,0 +1,139 @@
+============================================================
+  DISTRIBUTED SYSTEM SIMULATION LOG
+  Started: 2026-03-24 11:55:41
+============================================================
+
+
+-- LLM Decision at t=10.0 ---------
+  Failure : crash on N1
+  Decision:
+    [RULE] Action: promote_replica on N1 → Result: Promoted N2 to Primary
+
+-- LLM Decision at t=25.0 ---------
+  Failure : network_partition on N2<->N3
+  Decision:
+    [RULE] Action: rebalance_load on N2<->N3 → Result: Rebalanced to 33%
+
+-- LLM Decision at t=26.0 *** LLM OVERRIDE *** ---------
+  Failure : memory_leak on N4
+  Decision:
+    [LOW] [0% confident] [LLM OVERRIDE] Action: none on N4 -- LLM unavailable -> Result: Unknown action: none
+
+-- LLM Decision at t=30.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [RULE] Action: rebalance_load on network → Result: Rebalanced to 38%
+
+-- LLM Decision at t=40.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [RULE] Action: rebalance_load on network → Result: Rebalanced to 45%
+
+-- LLM Decision at t=43.0 *** LLM OVERRIDE *** ---------
+  Failure : memory_leak_early on N4
+  Decision:
+    [LOW] [0% confident] [LLM OVERRIDE] Action: none on N4 -- LLM unavailable -> Result: Unknown action: none
+
+-- LLM Decision at t=51.0 *** LLM OVERRIDE *** ---------
+  Failure : crash on N3
+  Decision:
+    [LOW] [0% confident] [LLM OVERRIDE] Action: none on N3 -- LLM unavailable -> Result: Unknown action: none
+
+-- LLM Decision at t=54.0 *** LLM OVERRIDE *** ---------
+  Failure : cpu_overload on N5
+  Decision:
+    [LOW] [0% confident] [LLM OVERRIDE] Action: none on N5 -- LLM unavailable -> Result: Unknown action: none
+
+-- LLM Decision at t=62.0 *** LLM OVERRIDE *** ---------
+  Failure : latency_spike on network
+  Decision:
+    [LOW] [0% confident] [LLM OVERRIDE] Action: none on N2 -- LLM unavailable -> Result: Unknown action: none
+
+-- LLM Decision at t=63.0 *** LLM OVERRIDE *** ---------
+  Failure : cpu_overload on N2
+  Decision:
+    [LOW] [0% confident] [LLM OVERRIDE] Action: none on N2 -- LLM unavailable -> Result: Unknown action: none
+
+==================================================
+  SIMULATION METRICS
+==================================================
+  Total LLM decisions:    10
+  LLM novel overrides:    6
+  Rule echoes:            0
+  Avg MTTR:               4.2 ticks
+  Failures resolved:      8/9
+  Message delivery:       97.6%
+==================================================
+
+============================================================
+  FINAL REPORT
+============================================================
+
+── LLM Analysis ──────────────────────────────────────
+  Analysis unavailable
+
+── Failure History ───────────────────────────────────
+  [ 10.0] crash                on N1           (resolved@t=15.0, MTTR=5.0)
+  [ 25.0] network_partition    on N2<->N3      (resolved@t=29.0, MTTR=4.0)
+  [ 26.0] memory_leak          on N4           (ACTIVE)
+  [ 30.0] latency_spike        on network      (resolved@t=33.0, MTTR=3.0)
+  [ 40.0] latency_spike        on network      (resolved@t=43.0, MTTR=3.0)
+  [ 51.0] crash                on N3           (resolved@t=56.0, MTTR=5.0)
+  [ 54.0] cpu_overload         on N5           (resolved@t=59.0, MTTR=5.0)
+  [ 62.0] latency_spike        on network      (resolved@t=66.0, MTTR=4.0)
+  [ 63.0] cpu_overload         on N2           (resolved@t=68.0, MTTR=5.0)
+
+  Total: 9 | Active: 1 | Resolved: 8
+
+  Avg MTTR: 4.2 ticks across 8 resolved failures
+
+── Final Node States ─────────────────────────────────
+  N1 (Replica ): status=healthy    health=100% load=54% [FULLY RESTORED]
+  N2 (Primary ): status=healthy    health=100% load=96% [FULLY RESTORED]
+  N3 (Primary ): status=healthy    health=100% load=22% [FULLY RESTORED]
+  N4 (Worker  ): status=failed     health=0% load=0%
+  N5 (Gateway ): status=healthy    health=100% load=43% [FULLY RESTORED]
+
+── Final Network Stats ───────────────────────────────
+  total_messages: 170
+  delivered: 166
+  dropped: 4
+  success_rate: 97.6%
+  requests_total: 140
+  requests_completed: 78
+  request_timeouts: 106
+  timeout_rate: 75.7%
+  writes_attempted: 46
+  writes_committed: 5
+  commit_rate: 10.9%
+  reads_completed: 72
+  stale_reads: 0
+  stale_read_rate: 0.0%
+  request_retries: 54
+  quorum_available_ticks: 74.0
+  quorum_unavailable_ticks: 0.0
+  leader_elections: 2
+  current_primary: N2
+  commit_index: 5
+
+  Completed: 2026-03-24 11:55:41
+============================================================
+
+── Decision Scoring ──────────────────────────────────
+  ========================================================
+    DECISION SCORING: LLM vs RULE ENGINE
+  ========================================================
+  Metric                       LLM            Rules         
+  --------------------------------------------------------
+    Decisions scored           5              4             
+    Avg total score            78.3           75.1          
+    Avg speed score            70.0           70.0          
+    Avg stability score        74.0           61.2          
+    Avg cascade score          100.0          100.0         
+    Avg delivery score         68.7           68.3          
+    Avg MTTR (ticks)           5.0            5.0           
+    Resolved %                 100.0          100.0         
+    Diverged from rules        5              0             
+  
+    ★ LLM and rules perform similarly (delta=3.2)
+  ========================================================

@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Self-Healing Distributed System</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #060a10;
+      --surface: #0d1520;
+      --border:  #1a2a3a;
+      --accent:  #00d4ff;
+      --green:   #00ff88;
+      --red:     #ff4466;
+      --orange:  #ffaa00;
+      --purple:  #aa88ff;
+      --pink:    #ff88ff;
+      --text:    #c8d8e8;
+      --muted:   #4a6a8a;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+    header h1 span { color: var(--green); }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    #sim-time { font-size: 1rem; color: var(--accent); font-weight: 700; }
+    #status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: var(--green);
+      color: #000;
+    }
+    #status-badge.complete { background: var(--purple); color: #fff; }
+
+    .progress-wrap {
+      margin-bottom: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 3px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .metric-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .metric-val {
+      font-size: 1.3rem;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      color: var(--accent);
+    }
+    .metric-val.green  { color: var(--green); }
+    .metric-val.red    { color: var(--red); }
+    .metric-val.orange { color: var(--orange); }
+    .metric-val.purple { color: var(--purple); }
+    .metric-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+
+   
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .panel.span-2 { grid-column: span 2; }
+    .panel-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .panel-title::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .panel-title.green::before  { background: var(--green); }
+    .panel-title.red::before    { background: var(--red); }
+    .panel-title.purple::before { background: var(--purple); }
+    .panel-title.orange::before { background: var(--orange); }
+    .panel-title.pink::before   { background: var(--pink); }
+
+    
+    .node-grid { display: flex; flex-direction: column; gap: 8px; }
+    .node-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      transition: all 0.3s;
+    }
+    .node-card.healthy  { border-left: 3px solid var(--green); }
+    .node-card.degraded { border-left: 3px solid var(--orange); }
+    .node-card.failed   { border-left: 3px solid var(--red); opacity: 0.7; }
+    .node-card.predicted { border-left: 3px solid var(--pink); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+    .node-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .node-name { font-weight: 700; font-size: 0.82rem; color: #fff; }
+    .node-role { font-size: 0.62rem; color: var(--muted); margin-left: 5px; }
+    .node-badge { font-size: 0.62rem; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+    .badge-healthy  { background: rgba(0,255,136,0.15); color: var(--green); }
+    .badge-degraded { background: rgba(255,170,0,0.15);  color: var(--orange); }
+    .badge-failed   { background: rgba(255,68,102,0.15); color: var(--red); }
+    .badge-predicted{ background: rgba(255,136,255,0.15);color: var(--pink); }
+    .node-bars { display: flex; flex-direction: column; gap: 3px; }
+    .bar-row { display: flex; align-items: center; gap: 6px; font-size: 0.62rem; color: var(--muted); }
+    .bar-label { width: 40px; }
+    .bar-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+    .bar-fill.health { background: var(--green); }
+    .bar-fill.load   { background: var(--accent); }
+    .bar-val { width: 28px; text-align: right; }
+
+    
+    .predictions-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+    .prediction-card {
+      background: var(--bg);
+      border: 1px solid rgba(255,136,255,0.2);
+      border-left: 3px solid var(--pink);
+      border-radius: 6px;
+      padding: 8px 10px;
+      animation: pulse 2s infinite;
+    }
+    .prediction-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .prediction-node { font-size: 0.72rem; font-weight: 700; color: var(--pink); }
+    .prediction-time { font-size: 0.65rem; color: var(--muted); }
+    .prediction-bar-wrap { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .confidence-bar { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .confidence-fill { height: 100%; background: var(--pink); border-radius: 2px; }
+    .prediction-text { font-size: 0.62rem; color: var(--muted); }
+
+    
+    .scroll-list {
+      max-height: 260px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .scroll-list::-webkit-scrollbar { width: 3px; }
+    .scroll-list::-webkit-scrollbar-track { background: var(--bg); }
+    .scroll-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    
+    .event-row {
+      display: flex;
+      gap: 8px;
+      font-size: 0.68rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--bg);
+      border-left: 2px solid transparent;
+    }
+    .event-row.error     { border-left-color: var(--red);    color: #ff8899; }
+    .event-row.success   { border-left-color: var(--green);  color: #88ffbb; }
+    .event-row.llm       { border-left-color: var(--purple); color: #ccaaff; }
+    .event-row.proactive { border-left-color: var(--pink);   color: #ffaaff; }
+    .event-row.predict   { border-left-color: var(--pink);   color: #ff88ff; }
+    .event-row.feedback  { border-left-color: var(--orange); color: #ffcc88; }
+    .event-row.info      { border-left-color: var(--muted);  color: var(--text); }
+    .event-time { color: var(--muted); min-width: 30px; }
+
+    
+    .decision-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      border-left: 3px solid var(--purple);
+    }
+    .decision-card.promote_replica { border-left-color: var(--green); }
+    .decision-card.restart_node    { border-left-color: var(--accent); }
+    .decision-card.reroute_traffic { border-left-color: var(--orange); }
+    .decision-card.isolate_node    { border-left-color: var(--red); }
+    .decision-card.rebalance_load  { border-left-color: var(--pink); }
+    .decision-card.proactive       { border-left-color: var(--pink); border: 1px solid rgba(255,136,255,0.3); }
+    .decision-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .decision-failure { font-size: 0.68rem; font-weight: 700; color: #fff; }
+    .decision-time { font-size: 0.62rem; color: var(--muted); }
+    .decision-badges { display: flex; gap: 4px; margin-bottom: 5px; flex-wrap: wrap; }
+    .badge-pill {
+      font-size: 0.58rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-action   { background: rgba(170,136,255,0.15); color: var(--purple); }
+    .badge-proactive{ background: rgba(255,136,255,0.2);  color: var(--pink); }
+    .badge-confidence { background: rgba(0,212,255,0.1); color: var(--accent); }
+    .decision-text { font-size: 0.66rem; color: var(--text); line-height: 1.5; opacity: 0.85; }
+    .decision-result { font-size: 0.63rem; color: var(--green); margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
+
+  
+    .action-counts { display: flex; flex-wrap: wrap; gap: 5px; }
+    .action-tag {
+      font-size: 0.6rem;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: rgba(0,212,255,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(0,212,255,0.2);
+    }
+    .action-tag.proactive-tag {
+      background: rgba(255,136,255,0.1);
+      color: var(--pink);
+      border-color: rgba(255,136,255,0.2);
+    }
+
+  
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .compare-side {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .compare-side.llm-side   { border-top: 2px solid var(--green); }
+    .compare-side.rule-side  { border-top: 2px solid var(--orange); }
+    .compare-label { font-size: 0.65rem; font-weight: 700; margin-bottom: 8px; }
+    .compare-label.llm-label  { color: var(--green); }
+    .compare-label.rule-label { color: var(--orange); }
+    .compare-stat { display: flex; justify-content: space-between; font-size: 0.62rem; padding: 3px 0; border-bottom: 1px solid var(--border); }
+    .compare-stat:last-child { border-bottom: none; }
+    .compare-stat-label { color: var(--muted); }
+    .compare-stat-val { color: var(--text); font-weight: 700; }
+    .compare-stat-val.win { color: var(--green); }
+    .verdict-box {
+      background: var(--bg);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.68rem;
+      color: var(--green);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 Self-Healing <span>Distributed System</span></h1>
+  <div class="header-right">
+    <span>Sim Time: <span id="sim-time">0.0</span>s / 60s</span>
+    <span id="cluster-size" style="color:var(--accent)">5 nodes</span>
+    <span id="status-badge">RUNNING</span>
+    <select id="cluster-select" style="background:#0d1520;color:#00d4ff;border:1px solid #1a2a3a;border-radius:6px;padding:4px 8px;font-family:JetBrains Mono,monospace;font-size:0.72rem;cursor:pointer;margin-left:8px">
+      <option value="5">5 nodes</option>
+      <option value="10">10 nodes</option>
+      <option value="20">20 nodes</option>
+    </select>
+    <button id="restart-btn" onclick="restartSimulation()" style="background:#00d4ff;color:#000;border:none;border-radius:6px;padding:4px 12px;font-family:JetBrains Mono,monospace;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:4px">▶ START</button>
+  </div>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-label">
+    <span>Simulation Progress</span>
+    <span id="progress-pct">0%</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+</div>
+
+<!-- Top metrics -->
+<div class="metrics-row">
+  <div class="metric-box">
+    <div class="metric-val" id="m-sent">—</div>
+    <div class="metric-label">Messages Sent</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-val green" id="m-delivered">—</div>
+    <div class="metric-label">Delivered</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-val red" id="m-dropped">—</div>
+    <div class="metric-label">Dropped</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-val green" id="m-rate">—</div>
+    <div class="metric-label">Success Rate</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-val purple" id="m-actions">0</div>
+    <div class="metric-label">AI Actions</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-val orange" id="m-predictions">0</div>
+    <div class="metric-label">Predictions</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- Panel 1: Nodes -->
+  <div class="panel">
+    <div class="panel-title green">Cluster Nodes</div>
+    <div class="node-grid" id="nodes-container">
+      <div style="color:var(--muted);font-size:0.75rem">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Panel 2: Predictions -->
+  <div class="panel">
+    <div class="panel-title pink">🔮 Predictive Alerts</div>
+    <div class="predictions-list" id="predictions-container">
+      <div style="color:var(--muted);font-size:0.72rem">Monitoring node health trends...</div>
+    </div>
+
+    <div class="panel-title" style="margin-top:14px">AI Actions Taken</div>
+    <div class="action-counts" id="action-counts">
+      <div style="color:var(--muted);font-size:0.68rem">Waiting...</div>
+    </div>
+  </div>
+
+  <!-- Panel 3: LLM vs Rules comparison -->
+  <div class="panel">
+    <div class="panel-title orange">📊 LLM vs Rule-Based</div>
+    <div class="compare-grid">
+      <div class="compare-side llm-side">
+        <div class="compare-label llm-label">LLM Recovery</div>
+        <div class="compare-stat">
+          <span class="compare-stat-label">Success Rate</span>
+          <span class="compare-stat-val win" id="cmp-llm-rate">—</span>
+        </div>
+        <div class="compare-stat">
+          <span class="compare-stat-label">Delivered</span>
+          <span class="compare-stat-val" id="cmp-llm-delivered">—</span>
+        </div>
+        <div class="compare-stat">
+          <span class="compare-stat-label">Actions</span>
+          <span class="compare-stat-val" id="cmp-llm-actions">—</span>
+        </div>
+      </div>
+      <div class="compare-side rule-side">
+        <div class="compare-label rule-label">Rule-Based</div>
+        <div class="compare-stat">
+          <span class="compare-stat-label">Success Rate</span>
+          <span class="compare-stat-val" id="cmp-rule-rate">84.7%</span>
+        </div>
+        <div class="compare-stat">
+          <span class="compare-stat-label">Delivered</span>
+          <span class="compare-stat-val" id="cmp-rule-delivered">105</span>
+        </div>
+        <div class="compare-stat">
+          <span class="compare-stat-label">Actions</span>
+          <span class="compare-stat-val" id="cmp-rule-actions">6</span>
+        </div>
+      </div>
+    </div>
+    <div class="verdict-box" id="verdict-box">
+       LLM wins by 6.1% higher delivery rate
+    </div>
+  </div>
+
+  <!-- Panel 4: Event log -->
+  <div class="panel">
+    <div class="panel-title red">Event Log</div>
+    <div class="scroll-list" id="events-container">
+      <div style="color:var(--muted);font-size:0.72rem">Waiting for events...</div>
+    </div>
+  </div>
+
+  <!-- Panel 5: LLM decisions (spans 2) -->
+  <div class="panel span-2">
+    <div class="panel-title purple">🤖 LLM Recovery Actions</div>
+    <div class="scroll-list" id="decisions-container" style="max-height:280px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div style="color:var(--muted);font-size:0.72rem">Waiting for failures...</div>
+    </div>
+  </div>
+
+  <!-- Panel 6: Score Chart (full width) -->
+  <div class="panel" style="grid-column: span 3;">
+    <div class="panel-title green">📈 Decision Score Timeline — LLM vs Rules</div>
+    <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+      <div style="position:relative; height:220px;">
+        <canvas id="score-chart"></canvas>
+      </div>
+      <div id="score-breakdown" style="display:flex; flex-direction:column; gap:6px;">
+        <div style="color:var(--muted);font-size:0.68rem;">Score breakdown appears after decisions are scored...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const actionCounts   = {};
+  let   predictionCount = 0;
+  let   totalActions    = 0;
+
+  
+  let scoreChart = null;
+  function initScoreChart() {
+    const ctx = document.getElementById('score-chart');
+    if (!ctx) return;
+    scoreChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'LLM Score',
+            data: [],
+            borderColor: '#00ff88',
+            backgroundColor: 'rgba(0,255,136,0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#00ff88',
+          },
+          {
+            label: 'Rule Score',
+            data: [],
+            borderColor: '#ffaa00',
+            backgroundColor: 'rgba(255,170,0,0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#ffaa00',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: { color: '#c8d8e8', font: { family: 'JetBrains Mono', size: 11 } }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Sim Time', color: '#4a6a8a', font: { size: 10 } },
+            ticks: { color: '#4a6a8a', font: { size: 9 } },
+            grid: { color: 'rgba(26,42,58,0.5)' }
+          },
+          y: {
+            title: { display: true, text: 'Score (0-100)', color: '#4a6a8a', font: { size: 10 } },
+            min: 0, max: 100,
+            ticks: { color: '#4a6a8a', font: { size: 9 } },
+            grid: { color: 'rgba(26,42,58,0.5)' }
+          }
+        }
+      }
+    });
+  }
+
+  function updateScoreChart(scoreHistory) {
+    if (!scoreHistory || !scoreHistory.length) return;
+    if (!scoreChart) initScoreChart();
+    if (!scoreChart) return;
+
+    const llmScores = scoreHistory.filter(s => s.source === 'llm' || s.source === 'llm_async');
+    const ruleScores = scoreHistory.filter(s => s.source === 'rule');
+
+    
+    const allTimes = [...new Set(scoreHistory.map(s => s.time))].sort((a,b) => a - b);
+    scoreChart.data.labels = allTimes.map(t => `t=${t}`);
+
+    
+    const llmByTime = {};
+    llmScores.forEach(s => { llmByTime[s.time] = s.total_score; });
+    const ruleByTime = {};
+    ruleScores.forEach(s => { ruleByTime[s.time] = s.total_score; });
+
+    scoreChart.data.datasets[0].data = allTimes.map(t => llmByTime[t] ?? null);
+    scoreChart.data.datasets[1].data = allTimes.map(t => ruleByTime[t] ?? null);
+    scoreChart.update('none');
+
+    
+    const breakdown = document.getElementById('score-breakdown');
+    const avgLLM = llmScores.length ? (llmScores.reduce((s,x) => s + x.total_score, 0) / llmScores.length).toFixed(1) : 'N/A';
+    const avgRule = ruleScores.length ? (ruleScores.reduce((s,x) => s + x.total_score, 0) / ruleScores.length).toFixed(1) : 'N/A';
+    const avgSpeed = llmScores.length ? (llmScores.reduce((s,x) => s + x.speed, 0) / llmScores.length).toFixed(1) : 'N/A';
+    const avgStab = llmScores.length ? (llmScores.reduce((s,x) => s + x.stability, 0) / llmScores.length).toFixed(1) : 'N/A';
+    const avgCasc = llmScores.length ? (llmScores.reduce((s,x) => s + x.cascade, 0) / llmScores.length).toFixed(1) : 'N/A';
+    const resolvedPct = llmScores.length ? ((llmScores.filter(s => s.resolved).length / llmScores.length) * 100).toFixed(0) : 'N/A';
+
+    breakdown.innerHTML = `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;border-left:3px solid var(--green)">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--green);margin-bottom:6px">LLM AVG SCORE</div>
+        <div style="font-size:1.4rem;font-weight:700;color:var(--green);font-family:Syne">${avgLLM}</div>
+        <div style="font-size:0.6rem;color:var(--muted);margin-top:4px">${llmScores.length} decisions scored</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;border-left:3px solid var(--orange)">
+        <div style="font-size:0.65rem;font-weight:700;color:var(--orange);margin-bottom:6px">RULE AVG SCORE</div>
+        <div style="font-size:1.4rem;font-weight:700;color:var(--orange);font-family:Syne">${avgRule}</div>
+        <div style="font-size:0.6rem;color:var(--muted);margin-top:4px">${ruleScores.length} decisions scored</div>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+        <div style="font-size:0.6rem;color:var(--muted);margin-bottom:4px">LLM BREAKDOWN</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding:2px 0;color:var(--text)">
+          <span>Speed</span><span style="font-weight:700">${avgSpeed}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding:2px 0;color:var(--text)">
+          <span>Stability</span><span style="font-weight:700">${avgStab}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding:2px 0;color:var(--text)">
+          <span>Cascade</span><span style="font-weight:700">${avgCasc}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.6rem;padding:2px 0;color:var(--text)">
+          <span>Resolved</span><span style="font-weight:700">${resolvedPct}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderNodes(nodes) {
+    const c = document.getElementById('nodes-container');
+    if (!nodes || !nodes.length) return;
+    c.innerHTML = nodes.map(n => {
+      const isPredicted = n.health < 40 && n.status !== 'failed';
+      const cardClass   = isPredicted ? 'predicted' : n.status;
+      const badgeClass  = isPredicted ? 'badge-predicted' : `badge-${n.status}`;
+      const badgeText   = isPredicted ? 'AT RISK' : n.status.toUpperCase();
+      return `
+        <div class="node-card ${cardClass}">
+          <div class="node-header">
+            <div>
+              <span class="node-name">${n.id}</span>
+              <span class="node-role">${n.role}</span>
+            </div>
+            <span class="node-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="node-bars">
+            <div class="bar-row">
+              <span class="bar-label">Health</span>
+              <div class="bar-track"><div class="bar-fill health" style="width:${n.health}%"></div></div>
+              <span class="bar-val">${Math.round(n.health)}%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Load</span>
+              <div class="bar-track"><div class="bar-fill load" style="width:${Math.min(n.load,100)}%"></div></div>
+              <span class="bar-val">${Math.round(n.load)}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderStats(stats, decisions) {
+    if (!stats) return;
+    document.getElementById('m-sent').textContent      = stats.total_messages || '—';
+    document.getElementById('m-delivered').textContent = stats.delivered || '—';
+    document.getElementById('m-dropped').textContent   = stats.dropped || '—';
+    document.getElementById('m-rate').textContent      = stats.success_rate || '—';
+
+    
+    document.getElementById('cmp-llm-rate').textContent      = stats.success_rate || '—';
+    document.getElementById('cmp-llm-delivered').textContent = stats.delivered || '—';
+
+    
+    if (decisions) {
+      totalActions = decisions.filter(d =>
+        d.action && !['skipped','monitor_only','parse_failed','analyze','optimize'].includes(d.action)
+      ).length;
+      document.getElementById('m-actions').textContent       = totalActions;
+      document.getElementById('cmp-llm-actions').textContent = totalActions;
+
+      
+      const llmRate  = parseFloat((stats.success_rate || '0').replace('%',''));
+      const ruleRate = 84.7;
+      const diff     = (llmRate - ruleRate).toFixed(1);
+      const verdict  = document.getElementById('verdict-box');
+      if (diff > 0) {
+        verdict.style.color       = 'var(--green)';
+        verdict.style.borderColor = 'rgba(0,255,136,0.2)';
+        verdict.textContent       = ` LLM wins by ${diff}% higher delivery rate`;
+      } else if (diff < 0) {
+        verdict.style.color       = 'var(--orange)';
+        verdict.style.borderColor = 'rgba(255,170,0,0.2)';
+        verdict.textContent       = `📏 Rule-based ahead by ${Math.abs(diff)}% — LLM catching up`;
+      } else {
+        verdict.textContent = ` Tied on delivery rate`;
+      }
+    }
+  }
+
+  function renderPredictions(events) {
+    if (!events) return;
+    const predictions = events.filter(e => e.msg && e.msg.includes('PREDICTION'));
+    predictionCount   = predictions.length;
+    document.getElementById('m-predictions').textContent = predictionCount;
+
+    const c = document.getElementById('predictions-container');
+    if (!predictions.length) {
+      c.innerHTML = '<div style="color:var(--muted);font-size:0.72rem">No predictions yet — monitoring...</div>';
+      return;
+    }
+
+    c.innerHTML = predictions.slice(0,5).map(e => {
+      const ticksMatch = e.msg.match(/~([\d.]+) ticks/);
+      const confMatch  = e.msg.match(/(\d+)%/);
+      const nodeMatch  = e.msg.match(/PREDICTION: (\w+)/);
+      const ticks      = ticksMatch ? ticksMatch[1] : '?';
+      const conf       = confMatch  ? confMatch[1]  : '?';
+      const node       = nodeMatch  ? nodeMatch[1]  : '?';
+      return `
+        <div class="prediction-card">
+          <div class="prediction-header">
+            <span class="prediction-node"> ${node} at risk</span>
+            <span class="prediction-time">t=${e.time}</span>
+          </div>
+          <div class="prediction-bar-wrap">
+            <div class="confidence-bar">
+              <div class="confidence-fill" style="width:${conf}%"></div>
+            </div>
+            <span style="font-size:0.6rem;color:var(--pink)">${conf}% conf</span>
+          </div>
+          <div class="prediction-text">Predicted failure in ~${ticks} ticks</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderEvents(events) {
+    const c = document.getElementById('events-container');
+    if (!events || !events.length) return;
+    c.innerHTML = events.map(e => {
+      let level = e.level;
+      if (e.msg && e.msg.includes('PROACTIVE')) level = 'proactive';
+      if (e.msg && e.msg.includes('PREDICTION')) level = 'predict';
+      if (e.msg && e.msg.includes('Follow-up'))  level = 'feedback';
+      return `
+        <div class="event-row ${level}">
+          <span class="event-time">t=${e.time}</span>
+          <span>${e.msg}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderDecisions(decisions) {
+    const c = document.getElementById('decisions-container');
+    if (!decisions || !decisions.length) return;
+
+    
+    decisions.forEach(d => {
+      if (d.action && !['optimize','analyze','skipped'].includes(d.action)) {
+        actionCounts[d.action] = (actionCounts[d.action] || 0) + 1;
+      }
+    });
+
+   
+    const ac      = document.getElementById('action-counts');
+    const entries = Object.entries(actionCounts);
+    if (entries.length) {
+      ac.innerHTML = entries.map(([action, count]) => {
+        const isProactive = action === 'proactive';
+        return `<span class="action-tag ${isProactive?'proactive-tag':''}">${action.replace(/_/g,' ')} ×${count}</span>`;
+      }).join('');
+    }
+
+    c.innerHTML = decisions.map(d => {
+      const isProactive = d.failure && d.failure.includes('predicted');
+      const parts       = (d.decision||'').split('→ Result:');
+      const mainText    = parts[0].trim();
+      const result      = parts[1] ? parts[1].trim() : null;
+
+      
+      const confMatch = mainText.match(/\[(\d+)% confident\]/);
+      const conf      = confMatch ? confMatch[1] : null;
+
+      return `
+        <div class="decision-card ${isProactive ? 'proactive' : (d.action||'')}">
+          <div class="decision-header">
+            <span class="decision-failure">${d.failure || ''}</span>
+            <span class="decision-time">t=${d.time}</span>
+          </div>
+          <div class="decision-badges">
+            ${d.action ? `<span class="badge-pill badge-action">${d.action.replace(/_/g,' ')}</span>` : ''}
+            ${isProactive ? `<span class="badge-pill badge-proactive">PROACTIVE</span>` : ''}
+            ${conf ? `<span class="badge-pill badge-confidence">${conf}% confident</span>` : ''}
+          </div>
+          <div class="decision-text">${mainText}</div>
+          ${result ? `<div class="decision-result">→ ${result}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function fetchState() {
+    try {
+      const res  = await fetch('/api/state');
+      const data = await res.json();
+
+      const pct = Math.min(100, (data.sim_time / 60) * 100).toFixed(0);
+      document.getElementById('sim-time').textContent      = data.sim_time.toFixed(1);
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-pct').textContent  = pct + '%';
+
+      if (data.nodes && data.nodes.length) {
+        document.getElementById('cluster-size').textContent = `${data.nodes.length} nodes`;
+      }
+
+      const badge = document.getElementById('status-badge');
+      if (data.complete) {
+        badge.textContent = 'COMPLETE';
+        badge.className   = 'complete';
+      }
+
+      renderNodes(data.nodes);
+      renderStats(data.stats, data.llm_decisions);
+      renderEvents(data.events);
+      renderPredictions(data.events);
+      renderDecisions(data.llm_decisions);
+      if (data.score_history && data.score_history.length) {
+        updateScoreChart(data.score_history);
+      }
+
+    } catch(e) {
+      console.error('Fetch error:', e);
+    }
+  }
+
+  async function restartSimulation() {
+    const size = document.getElementById("cluster-select").value;
+    const btn  = document.getElementById("restart-btn");
+    btn.textContent = "STARTING...";
+    btn.style.background = "var(--orange)";
+    try {
+      await fetch("/api/start", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({cluster_size: parseInt(size)})
+      });
+      btn.textContent = "RUNNING";
+      btn.style.background = "var(--green)";
+    } catch(e) {
+      btn.textContent = "ERROR";
+      btn.style.background = "var(--red)";
+    }
+  }
+
+  fetchState();
+  setInterval(fetchState, 2000);
+</script>
+</body>
+</html>

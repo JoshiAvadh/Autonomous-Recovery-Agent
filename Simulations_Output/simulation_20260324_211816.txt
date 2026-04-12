@@ -1,0 +1,567 @@
+============================================================
+  DISTRIBUTED SYSTEM SIMULATION LOG
+  Started: 2026-03-24 21:15:32
+============================================================
+============================================================
+  DISTRIBUTED SYSTEM SIMULATION LOG
+  Started: 2026-03-24 21:15:32
+============================================================
+
+ Building cluster with 10 nodes...
+[INIT] LLM calls: synchronous (ensures decisions arrive at correct sim time)
+ Starting self-healing simulation (10 nodes)...
+
+
+==================================================
+[t=10.0] Cluster Status:
+  N1 (Primary): failed | health=0% | load=0% | q=6 | lag=0
+  N10 (Worker): healthy | health=100% | load=40% | q=0
+  N2 (Replica): healthy | health=100% | load=37% | q=0 | lag=0
+  N3 (Replica): healthy | health=100% | load=52% | q=1 | lag=0
+  N4 (Worker): healthy | health=100% | load=18% | q=0
+  N5 (Gateway): healthy | health=100% | load=7% | q=0
+  N6 (Worker): healthy | health=100% | load=18% | q=0
+  N7 (Gateway): healthy | health=100% | load=27% | q=0
+  N8 (Worker): healthy | health=100% | load=45% | q=0
+  N9 (Gateway): healthy | health=100% | load=44% | q=0
+==================================================
+
+[t=10.0] Failure detected: crash on N1
+[t=10.0] [ROUTER] confidence=82% → TIER-2/LLM+VALIDATE (standard case)
+
+[t=10.0] LLM Decision: [CRITICAL] [92% confident] Action: restart_node on N1 -- Standard primary crash recovery with healthy replicas available for automatic failover -> Result: Restarted N1 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=10.0 ---------
+  Failure : crash on N1
+  Decision:
+    [CRITICAL] [92% confident] Action: restart_node on N1 -- Standard primary crash recovery with healthy replicas available for automatic failover -> Result: Restarted N1 -- memory cleared, queue drained, health restored to 90%
+
+[t=15.0] Running proactive LLM optimization...
+[t=15.0] [PROACTIVE] Risk: The cluster is currently at a moderate risk due to the high load variance, but there are no immediate health risks detected.
+Actions taken: Rebalanced load to 32% across 9 nodes
+- Rebalance the load across nodes to reduce the load variance and prevent performance issues
+- Investigate the cause of Node N6's failure and take corrective action to prevent similar failures in the future
+- Continuously monitor the cluster's performance metrics to quickly identify and address any potential issues before they become critical
+
+-- LLM Decision at t=15.0 ---------
+  Failure : proactive_optimization on cluster
+  Decision:
+    Risk: The cluster is currently at a moderate risk due to the high load variance, but there are no immediate health risks detected.
+Actions taken: Rebalanced load to 32% across 9 nodes
+- Rebalance the load across nodes to reduce the load variance and prevent performance issues
+- Investigate the cause of Node N6's failure and take corrective action to prevent similar failures in the future
+- Continuously monitor the cluster's performance metrics to quickly identify and address any potential issues before they become critical
+[t=15.0] [SCORE] N1: total=29 (speed=0, stability=35, cascade=40, delivery=68) source=llm
+
+[t=15.0] Failure detected: crash on N6
+[t=15.0] [ROUTER] confidence=82% → TIER-2/LLM+VALIDATE (standard case)
+
+[t=15.0] LLM Decision: [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N6 -- Blocked: Cannot monitor_only a failed node -> Result: Monitoring -- no action taken
+
+-- LLM Decision at t=15.0 ---------
+  Failure : crash on N6
+  Decision:
+    [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N6 -- Blocked: Cannot monitor_only a failed node -> Result: Monitoring -- no action taken
+
+==================================================
+[t=20.0] Cluster Status:
+  N1 (Primary): healthy | health=90% | load=30% | q=1 | lag=0
+  N10 (Worker): healthy | health=100% | load=28% | q=0
+  N2 (Replica): healthy | health=100% | load=39% | q=0 | lag=0
+  N3 (Replica): healthy | health=100% | load=30% | q=0 | lag=0
+  N4 (Worker): healthy | health=100% | load=24% | q=0
+  N5 (Gateway): healthy | health=100% | load=38% | q=0
+  N6 (Worker): degraded | health=40% | load=21% | q=0
+  N7 (Gateway): healthy | health=100% | load=34% | q=0
+  N8 (Worker): healthy | health=100% | load=36% | q=0
+  N9 (Gateway): healthy | health=100% | load=31% | q=0
+==================================================
+[t=20.0] [SCORE] cluster: total=78 (speed=70, stability=70, cascade=100, delivery=72) source=llm_proactive
+[t=20.0] [SCORE] N6: total=78 (speed=70, stability=70, cascade=100, delivery=72) source=llm
+
+[t=25.0] Failure detected: network_partition on N2<->N3
+[t=25.0] [ROUTER] confidence=68% → TIER-2/LLM+VALIDATE (partition affects consensus path; cluster is healthy — straightforward recovery)
+
+[t=25.0] LLM Decision: [MEDIUM] [80% confident] [LLM OVERRIDE] Action: monitor_only on N5 -- Monitoring the network partition between N2 and N3 to see if it resolves itself or if other issues arise is the safest course of action for now. -> Result: Monitoring -- no action taken
+
+-- LLM Decision at t=25.0 ---------
+  Failure : network_partition on N2<->N3
+  Decision:
+    [MEDIUM] [80% confident] [LLM OVERRIDE] Action: monitor_only on N5 -- Monitoring the network partition between N2 and N3 to see if it resolves itself or if other issues arise is the safest course of action for now. -> Result: Monitoring -- no action taken
+
+[t=26.0] Failure detected: memory_leak on N4
+[t=26.0] [ROUTER] confidence=45% → TIER-2/LLM+VALIDATE (memory leak needs judgement, not pure rules; cluster is healthy — straightforward recovery)
+
+[t=26.0] LLM Decision: [LOW] [80% confident] [LLM OVERRIDE] Action: monitor_only on N4 -- Monitoring N4 is the best initial response since the node's health and load are still within acceptable limits, and the cluster is otherwise stable. -> Result: Monitoring -- no action taken
+
+-- LLM Decision at t=26.0 ---------
+  Failure : memory_leak on N4
+  Decision:
+    [LOW] [80% confident] [LLM OVERRIDE] Action: monitor_only on N4 -- Monitoring N4 is the best initial response since the node's health and load are still within acceptable limits, and the cluster is otherwise stable. -> Result: Monitoring -- no action taken
+
+==================================================
+[t=30.0] Cluster Status:
+  N1 (Primary): healthy | health=90% | load=44% | q=5 | lag=0
+  N10 (Worker): healthy | health=100% | load=24% | q=0
+  N2 (Replica): healthy | health=100% | load=40% | q=0 | lag=0
+  N3 (Replica): healthy | health=100% | load=33% | q=0 | lag=0
+  N4 (Worker): healthy | health=91% | load=25% | q=0
+  N5 (Gateway): healthy | health=100% | load=46% | q=0
+  N6 (Worker): healthy | health=100% | load=22% | q=0
+  N7 (Gateway): healthy | health=100% | load=31% | q=0
+  N8 (Worker): healthy | health=100% | load=39% | q=0
+  N9 (Gateway): healthy | health=100% | load=34% | q=0
+==================================================
+
+[t=30.0] Running proactive LLM optimization...
+[t=30.0] [PROACTIVE] Risk: The overall cluster health is good with no immediate risks, but load variance is approaching a level that could indicate imbalance.
+- Continue to monitor load variance to ensure it does not exceed the imbalance threshold of 200.
+- Review and adjust node roles and workload distribution as necessary to maintain optimal load balance across the cluster.
+- Schedule periodic checks of node health and performance metrics to catch any potential issues before they become critical.
+
+-- LLM Decision at t=30.0 ---------
+  Failure : proactive_optimization on cluster
+  Decision:
+    Risk: The overall cluster health is good with no immediate risks, but load variance is approaching a level that could indicate imbalance.
+- Continue to monitor load variance to ensure it does not exceed the imbalance threshold of 200.
+- Review and adjust node roles and workload distribution as necessary to maintain optimal load balance across the cluster.
+- Schedule periodic checks of node health and performance metrics to catch any potential issues before they become critical.
+[t=30.0] [SCORE] N5: total=78 (speed=70, stability=70, cascade=100, delivery=71) source=llm
+
+[t=30.0] Failure detected: latency_spike on network
+[t=30.0] [ROUTER] confidence=80% → TIER-2/LLM+VALIDATE (cluster is healthy — straightforward recovery)
+
+[t=30.0] LLM Decision: [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N5 -- The cluster is stable with all nodes healthy, and the latency spike, while noteworthy, does not currently necessitate an immediate intervention beyond continued monitoring. -> Result: Monitoring -- no action taken
+
+-- LLM Decision at t=30.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N5 -- The cluster is stable with all nodes healthy, and the latency spike, while noteworthy, does not currently necessitate an immediate intervention beyond continued monitoring. -> Result: Monitoring -- no action taken
+[t=31.0] [SCORE] N4: total=53 (speed=0, stability=70, cascade=100, delivery=71) source=llm
+[t=35.0] [SCORE] cluster: total=78 (speed=70, stability=70, cascade=100, delivery=71) source=llm_proactive
+[t=35.0] [SCORE] N5: total=78 (speed=70, stability=70, cascade=100, delivery=71) source=llm
+
+[t=35.0] Failure detected: memory_leak on N7
+[t=35.0] [ROUTER] confidence=45% → TIER-2/LLM+VALIDATE (memory leak needs judgement, not pure rules; cluster is healthy — straightforward recovery)
+
+[t=35.0] LLM Decision: [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N7 -- The cluster is currently stable with all nodes healthy, and N7's memory leak, while a concern, does not immediately threaten the cluster's stability or quorum. -> Result: Monitoring -- no action taken
+
+-- LLM Decision at t=35.0 ---------
+  Failure : memory_leak on N7
+  Decision:
+    [LOW] [90% confident] [LLM OVERRIDE] Action: monitor_only on N7 -- The cluster is currently stable with all nodes healthy, and N7's memory leak, while a concern, does not immediately threaten the cluster's stability or quorum. -> Result: Monitoring -- no action taken
+
+==================================================
+[t=40.0] Cluster Status:
+  N1 (Primary): healthy | health=90% | load=67% | q=10 | lag=0
+  N10 (Worker): healthy | health=100% | load=34% | q=0
+  N2 (Replica): healthy | health=100% | load=36% | q=0 | lag=0
+  N3 (Replica): healthy | health=100% | load=42% | q=0 | lag=0
+  N4 (Worker): healthy | health=61% | load=35% | q=0
+  N5 (Gateway): healthy | health=100% | load=49% | q=0
+  N6 (Worker): healthy | health=100% | load=28% | q=0
+  N7 (Gateway): healthy | health=80% | load=35% | q=0
+  N8 (Worker): healthy | health=100% | load=36% | q=0
+  N9 (Gateway): healthy | health=100% | load=37% | q=0
+==================================================
+[t=40.0] [SCORE] N7: total=53 (speed=0, stability=70, cascade=100, delivery=70) source=llm
+
+[t=40.0] Failure detected: latency_spike on network
+[t=40.0] [ROUTER] confidence=80% → TIER-2/LLM+VALIDATE (cluster is healthy — straightforward recovery)
+
+[t=40.0] LLM Decision: [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+-- LLM Decision at t=40.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+[t=42.0] Failure detected: crash on N9
+[t=42.0] [ROUTER] confidence=82% → TIER-2/LLM+VALIDATE (standard case)
+
+[t=42.0] LLM Decision: [MEDIUM] [80% confident] Action: restart_node on N9 -- Restarting N9 allows it to recover from the crash without risking quorum or overloading other nodes -> Result: Restarted N9 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=42.0 ---------
+  Failure : crash on N9
+  Decision:
+    [MEDIUM] [80% confident] Action: restart_node on N9 -- Restarting N9 allows it to recover from the crash without risking quorum or overloading other nodes -> Result: Restarted N9 -- memory cleared, queue drained, health restored to 90%
+
+[t=42.0] Failure detected: network_partition on N6<->N8
+[t=42.0] [ROUTER] confidence=80% → TIER-2/LLM+VALIDATE (cluster is healthy — straightforward recovery)
+
+[t=42.0] LLM Decision: [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+-- LLM Decision at t=42.0 ---------
+  Failure : network_partition on N6<->N8
+  Decision:
+    [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+[t=43.0] Failure detected: memory_leak_early on N4
+[t=43.0] [ROUTER] confidence=37% → TIER-2/LLM+VALIDATE (health=49% — ambiguous restart vs isolate zone)
+
+[t=43.0] LLM Decision: [MEDIUM] [80% confident] Action: restart_node on N4 -- Restarting N4 will clear the memory leak and restore its health without risking quorum or significantly impacting cluster performance -> Result: Restarted N4 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=43.0 ---------
+  Failure : memory_leak_early on N4
+  Decision:
+    [MEDIUM] [80% confident] Action: restart_node on N4 -- Restarting N4 will clear the memory leak and restore its health without risking quorum or significantly impacting cluster performance -> Result: Restarted N4 -- memory cleared, queue drained, health restored to 90%
+
+[t=44.0] Failure detected: memory_leak on N1
+[t=44.0] [ROUTER] confidence=45% → TIER-2/LLM+VALIDATE (memory leak needs judgement, not pure rules; cluster is healthy — straightforward recovery)
+
+[t=44.0] LLM Decision: [HIGH] [90% confident] [LLM OVERRIDE] Action: restart_node on N1 -- Restarting N1 clears the memory leak immediately without risking quorum, and healthy replicas are available for automatic failover if needed -> Result: Restarted N1 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=44.0 ---------
+  Failure : memory_leak on N1
+  Decision:
+    [HIGH] [90% confident] [LLM OVERRIDE] Action: restart_node on N1 -- Restarting N1 clears the memory leak immediately without risking quorum, and healthy replicas are available for automatic failover if needed -> Result: Restarted N1 -- memory cleared, queue drained, health restored to 90%
+
+[t=45.0] Running proactive LLM optimization...
+[t=45.0] [PROACTIVE] Risk: The cluster is currently at moderate risk due to load imbalance and a node trending toward degradation, but overall quorum status is available and commit rate is relatively stable.
+- Rebalance load across nodes to reduce variance and prevent hotspots
+- Closely monitor node N7's health and take corrective action if it continues to degrade
+- Consider adding more nodes or adjusting existing node configurations to improve overall cluster performance and resilience
+
+-- LLM Decision at t=45.0 ---------
+  Failure : proactive_optimization on cluster
+  Decision:
+    Risk: The cluster is currently at moderate risk due to load imbalance and a node trending toward degradation, but overall quorum status is available and commit rate is relatively stable.
+- Rebalance load across nodes to reduce variance and prevent hotspots
+- Closely monitor node N7's health and take corrective action if it continues to degrade
+- Consider adding more nodes or adjusting existing node configurations to improve overall cluster performance and resilience
+[t=45.0] [SCORE] N5: total=78 (speed=70, stability=70, cascade=100, delivery=71) source=llm
+
+[t=45.0] Failure detected: network_partition on N1<->N2
+[t=45.0] [ROUTER] confidence=68% → TIER-2/LLM+VALIDATE (partition affects consensus path; cluster is healthy — straightforward recovery)
+
+[t=45.0] LLM Decision: [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+-- LLM Decision at t=45.0 ---------
+  Failure : network_partition on N1<->N2
+  Decision:
+    [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+[t=45.0] Failure detected: cpu_overload on N8
+[t=45.0] [ROUTER] confidence=58% → TIER-2/LLM+VALIDATE (another active issue already exists; overload during active recovery)
+
+[t=45.0] LLM Decision: [HIGH] [80% confident] Action: reroute_traffic on N8 -- Rerouting traffic from overloaded N8 is the best course of action to prevent further degradation and maintain cluster stability -> Result: Rerouted 38% load from N8 to 9 nodes
+
+-- LLM Decision at t=45.0 ---------
+  Failure : cpu_overload on N8
+  Decision:
+    [HIGH] [80% confident] Action: reroute_traffic on N8 -- Rerouting traffic from overloaded N8 is the best course of action to prevent further degradation and maintain cluster stability -> Result: Rerouted 38% load from N8 to 9 nodes
+
+[t=45.0] Failure detected: memory_leak_early on N7
+[t=45.0] [ROUTER] confidence=15% → TIER-3/LLM-EMERGENCY (2 nodes degraded/failed — cascade risk; health=50% — ambiguous restart vs isolate zone)
+
+[t=45.0] LLM Decision: [HIGH] [92% confident] Action: restart_node on N7 -- Restarting N7 is a more effective action to recover the node's health and prevent further degradation, despite the initial decision to isolate it, as the node's health is not critically low and a restart can potentially resolve the issue -> Result: Restarted N7 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=45.0 ---------
+  Failure : memory_leak_early on N7
+  Decision:
+    [HIGH] [92% confident] Action: restart_node on N7 -- Restarting N7 is a more effective action to recover the node's health and prevent further degradation, despite the initial decision to isolate it, as the node's health is not critically low and a restart can potentially resolve the issue -> Result: Restarted N7 -- memory cleared, queue drained, health restored to 90%
+[t=47.0] [SCORE] N9: total=44 (speed=0, stability=35, cascade=100, delivery=70) source=llm
+[t=47.0] [SCORE] N5: total=69 (speed=70, stability=35, cascade=100, delivery=70) source=llm
+[t=48.0] [SCORE] N4: total=69 (speed=70, stability=35, cascade=100, delivery=70) source=llm
+[t=49.0] [SCORE] N1: total=69 (speed=70, stability=35, cascade=100, delivery=70) source=llm
+
+==================================================
+[t=50.0] Cluster Status:
+  N1 (Primary): healthy | health=88% | load=22% | q=1 | lag=0
+  N10 (Worker): healthy | health=100% | load=29% | q=0
+  N2 (Replica): healthy | health=100% | load=46% | q=0 | lag=0
+  N3 (Replica): healthy | health=100% | load=50% | q=0 | lag=0
+  N4 (Worker): healthy | health=87% | load=14% | q=0
+  N5 (Gateway): healthy | health=100% | load=59% | q=0
+  N6 (Worker): healthy | health=100% | load=34% | q=0
+  N7 (Gateway): healthy | health=85% | load=16% | q=0
+  N8 (Worker): degraded | health=100% | load=41% | q=0
+  N9 (Gateway): healthy | health=90% | load=24% | q=0
+==================================================
+[t=50.0] [SCORE] cluster: total=69 (speed=70, stability=35, cascade=100, delivery=70) source=llm_proactive
+[t=50.0] [SCORE] N5: total=69 (speed=70, stability=35, cascade=100, delivery=70) source=llm
+[t=50.0] [SCORE] N8: total=53 (speed=0, stability=70, cascade=100, delivery=70) source=llm
+[t=50.0] [SCORE] N7: total=78 (speed=70, stability=70, cascade=100, delivery=70) source=llm
+
+[t=51.0] Failure detected: crash on N3
+[t=51.0] [ROUTER] confidence=48% → TIER-2/LLM+VALIDATE (2 nodes degraded/failed — cascade risk; Replica affected with little replication slack)
+
+[t=51.0] LLM Decision: [CRITICAL] [92% confident] [LLM OVERRIDE] Action: isolate_node on N3 -- Isolating N3 will prevent potential cascade failures and prioritize cluster stability over individual node recovery, despite the risk of temporarily breaking quorum with only two healthy consensus nodes. -> Result: Isolated N3 from all peers — restart scheduled in 5 ticks
+
+-- LLM Decision at t=51.0 ---------
+  Failure : crash on N3
+  Decision:
+    [CRITICAL] [92% confident] [LLM OVERRIDE] Action: isolate_node on N3 -- Isolating N3 will prevent potential cascade failures and prioritize cluster stability over individual node recovery, despite the risk of temporarily breaking quorum with only two healthy consensus nodes. -> Result: Isolated N3 from all peers — restart scheduled in 5 ticks
+
+[t=54.0] Failure detected: cpu_overload on N5
+[t=54.0] [ROUTER] confidence=36% → TIER-2/LLM+VALIDATE (2 nodes degraded/failed — cascade risk; load=100% — severe overload; overload during active recovery)
+
+[t=54.0] LLM Decision: [HIGH] [92% confident] Action: reroute_traffic on N5 -- Rerouting traffic from N5 remains the best approach to manage its overload without risking quorum or causing cascading failures, given the current cluster state and node health. -> Result: Rerouted 50% load from N5 to 8 nodes
+
+-- LLM Decision at t=54.0 ---------
+  Failure : cpu_overload on N5
+  Decision:
+    [HIGH] [92% confident] Action: reroute_traffic on N5 -- Rerouting traffic from N5 remains the best approach to manage its overload without risking quorum or causing cascading failures, given the current cluster state and node health. -> Result: Rerouted 50% load from N5 to 8 nodes
+
+[t=55.0] Failure detected: cpu_overload on N10
+[t=55.0] [ROUTER] confidence=23% → TIER-3/LLM-EMERGENCY (3 nodes degraded/failed — high cascade risk; load=86% — severe overload; overload during active recovery)
+
+[t=55.0] LLM Decision: [HIGH] [92% confident] Action: reroute_traffic on N10 -- Rerouting traffic from overloaded N10 is still the safest option to prevent cascade failures and maintain cluster stability, given the high load and degraded status of the node. -> Result: Rerouted 43% load from N10 to 7 nodes
+
+-- LLM Decision at t=55.0 ---------
+  Failure : cpu_overload on N10
+  Decision:
+    [HIGH] [92% confident] Action: reroute_traffic on N10 -- Rerouting traffic from overloaded N10 is still the safest option to prevent cascade failures and maintain cluster stability, given the high load and degraded status of the node. -> Result: Rerouted 43% load from N10 to 7 nodes
+[t=56.0] POST-ISOLATION RESTART: N3 coming back online
+
+-- LLM Decision at t=56.0 ---------
+  Failure : post_isolation_restart on N3
+  Decision:
+    [AUTO-RECOVERY] Post-isolation restart of N3 -- reconnected to cluster
+
+[t=56.0] Follow-up: restart_node on N3 -- Node N3 is degraded and the previous isolate_node action failed, so a restart is necessary to attempt recovery. -> Restarted N3 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=56.0 ---------
+  Failure : follow_up on N3
+  Decision:
+    Follow-up: restart_node on N3 -- Node N3 is degraded and the previous isolate_node action failed, so a restart is necessary to attempt recovery. -> Restarted N3 -- memory cleared, queue drained, health restored to 90%
+[t=56.0] [SCORE] N3: total=53 (speed=0, stability=70, cascade=100, delivery=68) source=llm
+
+[t=56.0] Failure detected: memory_leak on N6
+[t=56.0] [ROUTER] confidence=15% → TIER-3/LLM-EMERGENCY (2 nodes degraded/failed — cascade risk; memory leak needs judgement, not pure rules)
+
+[t=56.0] LLM Decision: [LOW] [70% confident] [LLM OVERRIDE] Action: monitor_only on N6 -- Blocked: Cannot monitor_only with multiple active failures -> Result: Monitoring -- no action taken
+
+-- LLM Decision at t=56.0 ---------
+  Failure : memory_leak on N6
+  Decision:
+    [LOW] [70% confident] [LLM OVERRIDE] Action: monitor_only on N6 -- Blocked: Cannot monitor_only with multiple active failures -> Result: Monitoring -- no action taken
+
+[t=59.0] Follow-up: rebalance_load on N5 -- The load on N5 is still high at 64% after the initial reroute_traffic action failed. -> Rebalanced load to 41% across 9 nodes
+
+-- LLM Decision at t=59.0 ---------
+  Failure : follow_up on N5
+  Decision:
+    Follow-up: rebalance_load on N5 -- The load on N5 is still high at 64% after the initial reroute_traffic action failed. -> Rebalanced load to 41% across 9 nodes
+[t=59.0] [SCORE] N5: total=84 (speed=70, stability=95, cascade=100, delivery=71) source=llm
+
+==================================================
+[t=60.0] Cluster Status:
+  N1 (Primary): healthy | health=88% | load=41% | q=3 | lag=0
+  N10 (Worker): healthy | health=100% | load=27% | q=0
+  N2 (Replica): healthy | health=100% | load=41% | q=0 | lag=1
+  N3 (Replica): healthy | health=90% | load=45% | q=0 | lag=1
+  N4 (Worker): healthy | health=87% | load=37% | q=0
+  N5 (Gateway): healthy | health=100% | load=41% | q=0
+  N6 (Worker): healthy | health=84% | load=40% | q=0
+  N7 (Gateway): healthy | health=85% | load=43% | q=0
+  N8 (Worker): healthy | health=100% | load=45% | q=0
+  N9 (Gateway): healthy | health=90% | load=41% | q=0
+==================================================
+
+[t=60.0] Running proactive LLM optimization...
+[t=60.0] [PROACTIVE] Risk: The cluster is currently healthy with no immediate health risks, but the commit rate and timeout rate trends require close monitoring to prevent potential future failures.
+- Improve the commit rate by optimizing the primary node's performance or adjusting the consensus protocol to reduce the latency and increase the throughput.
+- Investigate the causes of the 8.0% timeout rate and take corrective actions to reduce it, such as adjusting the timeout settings or improving the network connectivity.
+- Continue to monitor the load variance and take proactive actions to maintain a balanced load distribution across the nodes to prevent potential hotspots and performance bottlenecks.
+
+-- LLM Decision at t=60.0 ---------
+  Failure : proactive_optimization on cluster
+  Decision:
+    Risk: The cluster is currently healthy with no immediate health risks, but the commit rate and timeout rate trends require close monitoring to prevent potential future failures.
+- Improve the commit rate by optimizing the primary node's performance or adjusting the consensus protocol to reduce the latency and increase the throughput.
+- Investigate the causes of the 8.0% timeout rate and take corrective actions to reduce it, such as adjusting the timeout settings or improving the network connectivity.
+- Continue to monitor the load variance and take proactive actions to maintain a balanced load distribution across the nodes to prevent potential hotspots and performance bottlenecks.
+[t=60.0] [SCORE] N10: total=85 (speed=70, stability=100, cascade=100, delivery=70) source=llm
+[t=61.0] [SCORE] N3: total=60 (speed=0, stability=100, cascade=100, delivery=70) source=llm
+[t=61.0] [SCORE] N6: total=60 (speed=0, stability=100, cascade=100, delivery=70) source=llm
+
+[t=62.0] Failure detected: latency_spike on network
+[t=62.0] [ROUTER] confidence=80% → TIER-2/LLM+VALIDATE (cluster is healthy — straightforward recovery)
+
+[t=62.0] LLM Decision: [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+-- LLM Decision at t=62.0 ---------
+  Failure : latency_spike on network
+  Decision:
+    [CACHED] Action: monitor_only on N5 -> Monitoring -- no action taken
+
+[t=63.0] Failure detected: cpu_overload on N2
+[t=63.0] [ROUTER] confidence=48% → TIER-2/LLM+VALIDATE (another active issue already exists; load=90% — severe overload; overload during active recovery)
+
+[t=63.0] LLM Decision: [HIGH] [80% confident] Action: reroute_traffic on N2 -- Rerouting traffic from overloaded N2 prevents potential failure and cascade, while maintaining cluster stability -> Result: Rerouted 45% load from N2 to 9 nodes
+
+-- LLM Decision at t=63.0 ---------
+  Failure : cpu_overload on N2
+  Decision:
+    [HIGH] [80% confident] Action: reroute_traffic on N2 -- Rerouting traffic from overloaded N2 prevents potential failure and cascade, while maintaining cluster stability -> Result: Rerouted 45% load from N2 to 9 nodes
+[t=64.0] [SCORE] N5: total=53 (speed=0, stability=70, cascade=100, delivery=70) source=llm
+[t=65.0] [SCORE] cluster: total=69 (speed=70, stability=35, cascade=100, delivery=70) source=llm_proactive
+[t=67.0] [SCORE] N5: total=69 (speed=70, stability=35, cascade=100, delivery=70) source=llm
+[t=68.0] [SCORE] N2: total=84 (speed=70, stability=95, cascade=100, delivery=70) source=llm
+
+[t=69.0] Failure detected: memory_leak_early on N6
+[t=69.0] [ROUTER] confidence=37% → TIER-2/LLM+VALIDATE (health=48% — ambiguous restart vs isolate zone)
+
+[t=69.0] LLM Decision: [MEDIUM] [88% confident] Action: restart_node on N6 -- Restarting N6 clears the memory leak immediately and restores its health without risking quorum or significantly impacting cluster performance -> Result: Restarted N6 -- memory cleared, queue drained, health restored to 90%
+
+-- LLM Decision at t=69.0 ---------
+  Failure : memory_leak_early on N6
+  Decision:
+    [MEDIUM] [88% confident] Action: restart_node on N6 -- Restarting N6 clears the memory leak immediately and restores its health without risking quorum or significantly impacting cluster performance -> Result: Restarted N6 -- memory cleared, queue drained, health restored to 90%
+
+==================================================
+[t=70.0] Cluster Status:
+  N1 (Primary): healthy | health=88% | load=78% | q=14 | lag=0
+  N10 (Worker): healthy | health=100% | load=24% | q=0
+  N2 (Replica): healthy | health=100% | load=40% | q=0 | lag=0
+  N3 (Replica): healthy | health=90% | load=48% | q=0 | lag=0
+  N4 (Worker): healthy | health=87% | load=49% | q=0
+  N5 (Gateway): healthy | health=100% | load=48% | q=0
+  N6 (Worker): healthy | health=86% | load=20% | q=0
+  N7 (Gateway): healthy | health=85% | load=51% | q=0
+  N8 (Worker): healthy | health=100% | load=41% | q=0
+  N9 (Gateway): healthy | health=90% | load=41% | q=0
+==================================================
+[t=74.0] [SCORE] N6: total=78 (speed=70, stability=70, cascade=100, delivery=70) source=llm
+
+[MEMORY] Cross-run learning: 156 decisions stored
+  restart_node: 19x, avg_score=69.9, resolved=84.2%
+  proactive_optimize: 16x, avg_score=74.8, resolved=100.0%
+  monitor_only: 22x, avg_score=69.0, resolved=68.2%
+  reroute_traffic: 14x, avg_score=77.5, resolved=85.7%
+  rebalance_load: 6x, avg_score=67.8, resolved=66.7%
+  none: 72x, avg_score=53.6, resolved=38.9%
+  load_shed: 6x, avg_score=12.6, resolved=0.0%
+  isolate_node: 1x, avg_score=52.7, resolved=0.0%
+
+==================================================
+  SIMULATION METRICS
+==================================================
+  Total LLM decisions:    28
+  LLM novel overrides:    8
+  Avg MTTR:               5.7 ticks
+  Failures resolved:      18/18
+  Message delivery:       98.9%
+  Commit rate:            49.1% (26/53)
+  Timeout rate:           13.2% (23 timeouts)
+  Quorum unavailable:     0.0 ticks
+  Leader elections:       0
+  Split-brain events:     0
+  Rule echoes:            9
+  Timeout events:         5
+  Stale read rate:        0.0% (0 stale reads)
+==================================================
+
+========================================================
+  DECISION SCORING: LLM vs RULE ENGINE
+========================================================
+Metric                       LLM            Rules         
+--------------------------------------------------------
+  Decisions scored           23             N/A           
+  Avg total score            66.1           N/A           
+  Avg speed score            42.6           N/A           
+  Avg stability score        65.4           N/A           
+  Avg cascade score          97.4           N/A           
+  Avg delivery score         70.2           N/A           
+  Avg MTTR (ticks)           5.0            N/A           
+  Resolved %                 60.9           N/A           
+  Diverged from rules        13             N/A           
+
+  Proactive LLM optimizations: 4
+  Avg proactive score: 73.2
+
+========================================================
+
+========================================================
+  SCORE SUMMARY BY SOURCE
+========================================================
+  llm          count=23  avg_total=66.1  avg_mttr=5.0   resolved=60.9% diverged=13
+  llm_proactive count=4   avg_total=73.2  avg_mttr=5.0   resolved=100.0% diverged=0
+========================================================
+
+── Advanced Features ─────────────────────────────────
+  Proactive: 4 cluster optimizations
+
+── LLM Final Analysis ────────────────────────────────
+Based on the provided data, I would give the system a resilience score of 8 out of 10, as it was able to recover from 18 failures with an average MTTR of 5.7 simulation ticks and maintain a message delivery rate of 98.9%, indicating a high level of overall system reliability.
+
+Several things worked well in this system, including the restart of N1 at t=10 by the LLM, which restored the node's health to 90% and cleared its memory and queue, demonstrating the effectiveness of automated recovery actions. Additionally, the proactive optimization at t=15, which rebalanced the load across 9 nodes to reduce load variance, helped to prevent performance issues and maintain system stability. The rerouting of traffic from N8 at t=45 by the LLM also helped to reduce the node's load and prevent further degradation, showcasing the system's ability to adapt to changing conditions.
+
+However, there were also several weaknesses in the system, including the crash of N6 at t=15, which was not immediately addressed and required monitoring but no action was taken, indicating a potential delay in response to node failures. The memory leak on N4 at t=26, which took 17 ticks to resolve, highlights the need for more efficient detection and resolution of node-level issues. The cpu_overload on N5 at t=54, which required rerouting of traffic, demonstrates the importance of proactive load management to prevent node overload.
+
+To address these weaknesses, several concrete improvement suggestions can be made, including implementing more aggressive monitoring and response protocols for node failures, such as automatically restarting nodes after a crash, to reduce the time to recovery. Additionally, improving the detection and resolution of node-level issues, such as memory leaks, through more advanced analytics and automation, could help to reduce the MTTR and prevent further degradation. Finally, implementing more proactive load management strategies, such as dynamic load rebalancing and node-level resource allocation, could help to prevent node overload and maintain system stability.
+
+Comparing the scoring data for LLM and LLM_PROACTIVE decisions, it is clear that LLM_PROACTIVE decisions had a higher average score of 73.2 and a 100% resolution rate, compared to LLM decisions which had an average score of 66.1 and a 60.9% resolution rate, indicating that proactive optimizations were more effective in resolving issues and improving system reliability.
+
+Load shedding did occur in the system, such as the rerouting of traffic from N8 at t=45, which reduced the node's load by 38%, and the rerouting of traffic from N5 at t=54, which reduced the node's load by 50%, and from N10 at t=55, which reduced the node's load by 43%. These actions helped to improve the commit rate and reduce the timeout rate by preventing node overload and maintaining system stability.
+
+Proactive optimizations also occurred in the system, such as the rebalancing of load at t=15, which helped to prevent performance issues and maintain system stability, and the proactive optimization at t=30, which continued to monitor load variance and adjust node roles and workload distribution as necessary. These actions helped to prevent degradation and maintain system reliability, demonstrating the effectiveness of proactive optimization strategies in improving system resilience.
+
+── Failures: 18 resolved / 0 active / 18 total ──
+  Avg MTTR: 5.7 ticks
+
+── Detailed Failure History ───────────────────────────
+
+── Failure History ───────────────────────────────────
+  [ 10.0] crash                on N1           (resolved@t=15.0, MTTR=5.0)
+  [ 15.0] crash                on N6           (resolved@t=19.0, MTTR=4.0)
+  [ 25.0] network_partition    on N2<->N3      (resolved@t=29.0, MTTR=4.0)
+  [ 26.0] memory_leak          on N4           (resolved@t=43.0, MTTR=17.0)
+  [ 30.0] latency_spike        on network      (resolved@t=33.0, MTTR=3.0)
+  [ 35.0] memory_leak          on N7           (resolved@t=45.0, MTTR=10.0)
+  [ 40.0] latency_spike        on network      (resolved@t=43.0, MTTR=3.0)
+  [ 42.0] crash                on N9           (resolved@t=48.0, MTTR=6.0)
+  [ 42.0] network_partition    on N6<->N8      (resolved@t=47.0, MTTR=5.0)
+  [ 44.0] memory_leak          on N1           (resolved@t=44.0, MTTR=0.0)
+  [ 45.0] network_partition    on N1<->N2      (resolved@t=48.0, MTTR=3.0)
+  [ 45.0] cpu_overload         on N8           (resolved@t=51.0, MTTR=6.0)
+  [ 51.0] crash                on N3           (resolved@t=56.0, MTTR=5.0)
+  [ 54.0] cpu_overload         on N5           (resolved@t=59.0, MTTR=5.0)
+  [ 55.0] cpu_overload         on N10          (resolved@t=59.0, MTTR=4.0)
+  [ 56.0] memory_leak          on N6           (resolved@t=69.0, MTTR=13.0)
+  [ 62.0] latency_spike        on network      (resolved@t=66.0, MTTR=4.0)
+  [ 63.0] cpu_overload         on N2           (resolved@t=68.0, MTTR=5.0)
+
+  Total: 18 | Active: 0 | Resolved: 18
+
+  Avg MTTR: 5.7 ticks across 18 resolved failures
+
+── Final Node States ─────────────────────────────────
+  N1 (Primary ): status=healthy    health=88% load=83%
+  N10 (Worker  ): status=healthy    health=100% load=25% [FULLY RESTORED]
+  N2 (Replica ): status=healthy    health=100% load=38% [FULLY RESTORED]
+  N3 (Replica ): status=healthy    health=90% load=44%
+  N4 (Worker  ): status=healthy    health=87% load=50%
+  N5 (Gateway ): status=healthy    health=100% load=51% [FULLY RESTORED]
+  N6 (Worker  ): status=healthy    health=86% load=23%
+  N7 (Gateway ): status=healthy    health=85% load=51%
+  N8 (Worker  ): status=healthy    health=100% load=48% [FULLY RESTORED]
+  N9 (Gateway ): status=healthy    health=90% load=41%
+
+── Final Network Stats ───────────────────────────────
+  total_messages: 354
+  delivered: 350
+  dropped: 4
+  success_rate: 98.9%
+  requests_total: 174
+  requests_completed: 131
+  request_timeouts: 23
+  timeout_events: 5
+  timeout_rate: 13.2%
+  writes_attempted: 53
+  writes_committed: 26
+  commit_rate: 49.1%
+  reads_completed: 105
+  stale_reads: 0
+  stale_read_rate: 0.0%
+  request_retries: 5
+  quorum_available_ticks: 74.0
+  quorum_unavailable_ticks: 0.0
+  leader_elections: 0
+  split_brain_events: 0
+  current_primary: N1
+  commit_index: 26
+
+  Completed: 2026-03-24 21:18:16
+============================================================

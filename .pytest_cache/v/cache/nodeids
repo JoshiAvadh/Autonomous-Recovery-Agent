@@ -1,0 +1,18 @@
+[
+  "test_failures.py::test_cpu_overload",
+  "test_failures.py::test_crash_injection",
+  "test_failures.py::test_event_bus_integration",
+  "test_failures.py::test_failure_history",
+  "test_failures.py::test_latency_spike",
+  "test_failures.py::test_memory_leak",
+  "test_failures.py::test_partition_injection",
+  "test_failures.py::test_primary_crash_election",
+  "test_network.py::test_cluster_creation",
+  "test_network.py::test_leader_election",
+  "test_network.py::test_partition_and_heal",
+  "test_network.py::test_quorum_check",
+  "test_network.py::test_rejoin_node",
+  "test_network.py::test_simulation_runs",
+  "test_network.py::test_single_primary_invariant",
+  "test_network.py::test_stats_reporting"
+]

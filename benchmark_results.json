@@ -1,0 +1,42 @@
+[
+  {
+    "cluster_size": 5,
+    "mode": "LLM+Rules",
+    "seeds": 5,
+    "avg_mttr": 4.25,
+    "avg_resolved_pct": 88.9,
+    "avg_overrides": 5.0,
+    "avg_llm_score": 71.4,
+    "avg_rule_score": 75.4
+  },
+  {
+    "cluster_size": 5,
+    "mode": "Rules Only",
+    "seeds": 5,
+    "avg_mttr": 4.25,
+    "avg_resolved_pct": 88.9,
+    "avg_overrides": 0.0,
+    "avg_llm_score": null,
+    "avg_rule_score": 70.8
+  },
+  {
+    "cluster_size": 10,
+    "mode": "LLM+Rules",
+    "seeds": 5,
+    "avg_mttr": 4.58,
+    "avg_resolved_pct": 85.7,
+    "avg_overrides": 8.4,
+    "avg_llm_score": 72.9,
+    "avg_rule_score": 61.2
+  },
+  {
+    "cluster_size": 10,
+    "mode": "Rules Only",
+    "seeds": 5,
+    "avg_mttr": 4.58,
+    "avg_resolved_pct": 85.7,
+    "avg_overrides": 0.0,
+    "avg_llm_score": null,
+    "avg_rule_score": 68.2
+  }
+]
