@@ -1,7 +1,7 @@
-# live_cluster
+# live_cluster — Autonomous Recovery Agent
 
-A real, networked distributed cluster that reuses the SimPy simulator's decision
-brain against actual containers, real Raft consensus, and a real Kafka backbone.
+The live half of the [Autonomous Recovery Agent](../README.md): a real, networked
+distributed cluster that reuses the SimPy simulator's decision brain against actual containers, real Raft consensus, and a real Kafka backbone.
 
 **Thesis:** can a recovery policy developed in simulation make correct, measurable
 decisions against a real system — when it must diagnose the failure itself, with
@@ -11,8 +11,10 @@ Full design, phase gates, and contracts: [`../plan.md`](../plan.md).
 
 ## Status
 
-**Phase 1 complete** — Kafka (KRaft) + N nodes + 1 Hz heartbeat. No Raft yet
-(Phase 2), no traffic (Phase 3), no failures (Phase 4), no agent (Phase 5+).
+**All phases complete, every gate green (2026-10-17).** Kafka (KRaft), real Raft,
+load generator, failure injector, diagnosis layer, rules + executor, LLM tiers,
+scorer, predictor, memory, full action set, and the live dashboard on
+http://localhost:9700. See [`../plan.md`](../plan.md) for gate results.
 
 ## Quick start
 
@@ -22,10 +24,12 @@ docker compose up -d --build
 ./scripts/tail_topic.sh cluster.health
 ```
 
-Run the phase gate:
+Wait for warm-up before injecting anything, then run any phase gate:
 
 ```bash
-./scripts/gate1.sh
+./scripts/wait_for_warmup.sh
+./scripts/gate1.sh            # Phase 1
+python3 scripts/gate8.py      # Phase 8 (gates 2-8 are Python)
 ```
 
 Tear down with `docker compose down`.

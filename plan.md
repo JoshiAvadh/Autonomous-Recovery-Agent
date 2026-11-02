@@ -1,4 +1,4 @@
-# Live Cluster — Implementation Plan
+# Autonomous Recovery Agent — Live Cluster Implementation Plan
 
 **Thesis:** *Can a recovery policy developed in simulation make correct, measurable
 decisions against a real containerized distributed system — when it must diagnose the
