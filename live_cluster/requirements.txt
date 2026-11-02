@@ -1,0 +1,10 @@
+# Shared runtime — installed into every service image.
+# Pinned per plan.md §0.4.
+pysyncobj==0.3.12
+grpcio==1.68.1
+grpcio-tools==1.68.1
+confluent-kafka==2.6.1
+docker==7.1.0
+psutil==6.1.0
+groq
+python-dotenv

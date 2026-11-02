@@ -1,0 +1,5 @@
+# Evaluator only — runs offline on the host, never shipped in a node image.
+# plan.md §0.4 lists scipy as evaluator-scoped; keeping it in a separate file
+# means the ~90MB wheel never lands in five node containers.
+-r requirements.txt
+scipy==1.14.1        # linear_sum_assignment for the §8.1a optimal matching

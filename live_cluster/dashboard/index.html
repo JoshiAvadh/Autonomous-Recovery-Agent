@@ -1,0 +1,146 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>live_cluster</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --line:#262d36; --txt:#e6edf3;
+    --dim:#8b949e; --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+    --truth:#a371f7; --diag:#58a6ff; --dec:#e3b341; --act:#3fb950; --score:#79c0ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+  header{padding:14px 20px;border-bottom:1px solid var(--line);
+         display:flex;gap:28px;align-items:baseline;flex-wrap:wrap}
+  h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.3px}
+  .sub{color:var(--dim);font-size:12px}
+  .stats{margin-left:auto;display:flex;gap:18px;flex-wrap:wrap}
+  .stat b{color:var(--txt)} .stat{color:var(--dim)}
+  main{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:16px;padding:16px}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);
+            margin:0;padding:10px 14px;border-bottom:1px solid var(--line);font-weight:600}
+  .node{display:grid;grid-template-columns:1fr auto;gap:2px 10px;
+        padding:10px 14px;border-bottom:1px solid var(--line)}
+  .node:last-child{border-bottom:0}
+  .nid{font-weight:600}
+  .badge{font-size:10px;padding:1px 6px;border-radius:9px;border:1px solid var(--line);color:var(--dim)}
+  .b-leader{color:var(--dec);border-color:var(--dec)}
+  .b-shed{color:var(--warn);border-color:var(--warn)}
+  .b-iso{color:var(--bad);border-color:var(--bad)}
+  .meta{grid-column:1/-1;color:var(--dim);font-size:11px;display:flex;gap:12px;flex-wrap:wrap}
+  .bar{grid-column:1/-1;height:4px;background:#21262d;border-radius:2px;overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%}
+  .s-healthy{color:var(--ok)} .s-degraded{color:var(--warn)}
+  .s-failed{color:var(--bad)} .s-isolated{color:var(--truth)}
+  .ev{display:grid;grid-template-columns:62px 92px 74px 1fr;gap:10px;
+      padding:7px 14px;border-bottom:1px solid var(--line);align-items:baseline}
+  .ev:last-child{border-bottom:0}
+  .ev time{color:var(--dim);font-size:11px}
+  .tag{font-size:10px;letter-spacing:.6px;text-transform:uppercase;font-weight:600}
+  .k-truth .tag{color:var(--truth)} .k-diagnosis .tag{color:var(--diag)}
+  .k-decision .tag{color:var(--dec)} .k-action .tag{color:var(--act)}
+  .k-score .tag{color:var(--score)}
+  .tgt{color:var(--dim)}
+  .det{color:var(--dim);font-size:11px;grid-column:4}
+  .k-truth{background:rgba(163,113,247,.055)}
+  .dv{color:var(--dec);font-weight:600}
+  .legend{padding:8px 14px;color:var(--dim);font-size:11px;border-top:1px solid var(--line)}
+  .empty{padding:26px 14px;color:var(--dim);text-align:center}
+</style>
+
+<header>
+  <h1>live_cluster</h1>
+  <span class="sub">real Raft · real Kafka · diagnosis without labels</span>
+  <div class="stats" id="stats"></div>
+</header>
+
+<main>
+  <div>
+    <div class="panel"><h2>Cluster</h2><div id="nodes"></div></div>
+    <div class="panel" style="margin-top:16px"><h2>Decisions</h2><div id="decisions"></div></div>
+  </div>
+  <div class="panel">
+    <h2>Causal timeline</h2>
+    <div id="events"></div>
+    <div class="legend">
+      <b style="color:var(--truth)">INJECTED</b> is ground truth, shown to you and
+      never to the agent — it is the answer key beside the agent's answer.
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const clock = t => new Date(t*1000).toLocaleTimeString('en-GB',{hour12:false});
+const esc = s => String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const hcol = h => h>=70?'var(--ok)':h>=20?'var(--warn)':'var(--bad)';
+
+function nodeRow(n){
+  const badges = [
+    n.leader ? '<span class="badge b-leader">LEADER</span>' : '',
+    n.shedding ? '<span class="badge b-shed">SHED</span>' : '',
+    n.isolated ? '<span class="badge b-iso">ISOLATED</span>' : '',
+  ].join('');
+  const h = n.health==null ? 0 : n.health;
+  return `<div class="node">
+    <div><span class="nid">${esc(n.id)}</span> <span class="badge">${esc(n.role)}</span> ${badges}</div>
+    <div class="s-${esc(n.status)}">${esc(n.status)}</div>
+    <div class="bar"><i style="width:${h}%;background:${hcol(h)}"></i></div>
+    <div class="meta">
+      <span>health ${h==null?'–':h.toFixed(0)}</span>
+      <span>cpu ${n.cpu_pct==null?'–':n.cpu_pct.toFixed(0)}%</span>
+      <span>rss ${n.rss_mb==null?'–':n.rss_mb.toFixed(0)}MB</span>
+      <span>term ${esc(n.term)}</span>
+      <span>lag ${esc(n.apply_lag)}</span>
+      ${n.quorum===false?'<span style="color:var(--bad)">no quorum</span>':''}
+    </div></div>`;
+}
+
+function evRow(e){
+  const tag = e.kind==='truth'?'truth':e.kind;
+  return `<div class="ev k-${esc(e.kind)}">
+    <time>${clock(e.ts)}</time>
+    <span class="tag">${esc(tag)}</span>
+    <span class="tgt">${esc(e.target||'—')}</span>
+    <span>${esc(e.text)}${e.source?` <span class="tgt">(${esc(e.source)})</span>`:''}</span>
+    ${e.detail?`<span class="det">${esc(e.detail)}</span>`:''}
+  </div>`;
+}
+
+function decRow(d){
+  const st = (d.states||[]).join(' → ') || 'pending';
+  return `<div class="node">
+    <div><span class="nid">${esc(d.action)}</span> <span class="tgt">${esc(d.target)}</span></div>
+    <div class="badge">${esc(d.source)}${d.confidence!=null?' '+d.confidence+'%':''}</div>
+    <div class="meta">
+      <span>${esc(st)}</span>
+      ${d.score!=null?`<span>score ${d.score.toFixed(0)}</span>`:''}
+      ${d.diverged?`<span class="dv">diverged from rule: ${esc(d.rule_suggestion)}</span>`:''}
+    </div>
+    ${d.reason?`<div class="meta">${esc(String(d.reason).slice(0,150))}</div>`:''}
+  </div>`;
+}
+
+async function tick(){
+  let s;
+  try { s = await (await fetch('/api/state',{cache:'no-store'})).json(); }
+  catch { return; }
+  const st = s.stats;
+  const acc = (st.correct+st.missed) ? Math.round(100*st.correct/(st.correct+st.missed)) : null;
+  $('stats').innerHTML = [
+    ['faults injected', st.ground_truth], ['diagnoses', st.diagnoses],
+    ['decisions', st.decisions], ['scored', st.scored],
+    ['diagnosis accuracy', acc==null?'—':acc+'%'],
+  ].map(([k,v])=>`<span class="stat">${k} <b>${v}</b></span>`).join('');
+
+  $('nodes').innerHTML = s.nodes.length ? s.nodes.map(nodeRow).join('')
+    : '<div class="empty">waiting for telemetry…</div>';
+  $('events').innerHTML = s.events.length ? s.events.map(evRow).join('')
+    : '<div class="empty">no events yet — inject a fault to see the chain</div>';
+  $('decisions').innerHTML = s.decisions.length ? s.decisions.map(decRow).join('')
+    : '<div class="empty">no decisions yet</div>';
+}
+tick(); setInterval(tick, 1000);
+</script>

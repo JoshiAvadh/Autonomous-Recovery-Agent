@@ -1,0 +1,65 @@
+syntax = "proto3";
+package livecluster;
+
+// Full contract per plan.md §4.3. Phase 1 implements GetStatus only;
+// SubmitWrite/SubmitRead arrive in Phase 2, AdminAction verbs in Phase 4/8.
+// Defined in full now so stubs are not regenerated every phase.
+
+service NodeService {
+  rpc GetStatus   (StatusRequest) returns (StatusReply);
+  rpc SubmitWrite (WriteRequest)  returns (WriteReply);
+  rpc SubmitRead  (ReadRequest)   returns (ReadReply);
+  rpc AdminAction (AdminRequest)  returns (AdminReply);
+}
+
+message StatusRequest {}
+
+message StatusReply {
+  string node_id      = 1;
+  string role         = 2;   // Primary | Replica | Worker | Gateway
+  string status       = 3;   // healthy | degraded | failed
+  double health       = 4;   // 0-100
+  double load         = 5;   // 0-100, real CPU%
+  int32  queue_length = 6;
+  int32  apply_lag    = 7;
+  bool   raft_leader  = 8;
+  int64  commit_index = 9;
+  int64  raft_term    = 10;
+
+  // process identity — plan.md §4.1a. boot_id is the ONLY restart proof.
+  string boot_id      = 11;  // uuid4, generated once at process start
+  double started_at   = 12;  // absolute epoch of process start
+  double uptime       = 13;  // duration; freshness only, never identity
+
+  bool   shedding     = 14;
+  bool   isolated     = 15;
+
+  // Phase 8's forced step-down requires hasQuorum among the REMAINING voters
+  // before it will deliberately create an unavailability window, and the
+  // executor reads that from a fresh GetStatus (§6.2). Carrying it here keeps
+  // that check on live state rather than on cached telemetry.
+  bool   has_quorum   = 16;
+}
+
+message WriteRequest { string key = 1; string value = 2; }
+message WriteReply   { bool committed = 1; int64 commit_index = 2; string error = 3; }
+message ReadRequest  { string key = 1; }
+message ReadReply    { string value = 1; bool stale = 2; int32 lag = 3; string error = 4; }
+
+enum AdminVerb {
+  ISOLATE             = 0;
+  REJOIN              = 1;
+  START_LEAK          = 2;
+  STOP_LEAK           = 3;
+  START_CPU_BURN      = 4;
+  STOP_CPU_BURN       = 5;
+  ENTER_SHED          = 6;
+  EXIT_SHED           = 7;
+  // 8 = TRANSFER_LEADERSHIP — RESERVED, NOT IMPLEMENTED.
+  //     Gate 0.2 confirmed pysyncobj 0.3.12 exposes no leadership transfer.
+  //     promote_replica uses forced step-down instead (plan.md §0.2, Phase 8).
+  ENSURE_RUNNING      = 9;
+}
+
+message AdminRequest { AdminVerb verb = 1; string arg = 2; }
+message AdminReply   { bool ok = 1; string detail = 2; }

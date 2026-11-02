@@ -1,0 +1,56 @@
+# GENERATED FROM THIS TEMPLATE BY generate_compose.py — do not edit the output.
+# Rendered file: docker-compose.yml (gitignored; regenerate on demand).
+#
+#   python generate_compose.py --nodes 5
+#
+# Node count is resolved at RENDER time, not via `--scale`, because Raft needs
+# stable known peer identities rather than fungible replicas (plan.md §0.3).
+
+name: live_cluster
+
+services:
+
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: kafka
+    hostname: kafka
+    environment:
+      # Single-broker KRaft — no ZooKeeper. This is NOT a resilient backbone
+      # and the plan says so out loud (plan.md §11): the control plane is
+      # deliberately not HA. The thesis is decision quality, not availability.
+      CLUSTER_ID: "__CLUSTER_ID__"
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: "1"
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 15s
+    networks:
+      - live_cluster
+    # No volume: storage is ephemeral so every `up` formats cleanly against the
+    # fixed CLUSTER_ID. Topic data is not worth preserving between runs.
+
+__NODE_SERVICES__
+volumes:
+  executor_state:
+
+networks:
+  live_cluster:
+    name: live_cluster
+    driver: bridge

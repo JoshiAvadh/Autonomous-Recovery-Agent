@@ -1,0 +1,33 @@
+syntax = "proto3";
+package livecluster;
+
+// The load generator is the subsystem that `reroute_traffic` and
+// `rebalance_load` actually act on (plan.md §6.2a). Those actions mutate this
+// weight table, not the node — which is why the executor validates them
+// against the generator rather than gating them on node reachability.
+
+service LoadGenService {
+  rpc SetWeights (WeightTable) returns (WeightReply);
+  rpc GetWeights (Empty)       returns (WeightTable);
+  rpc SetRate    (RateRequest) returns (WeightReply);
+  rpc GetStats   (Empty)       returns (StatsReply);
+}
+
+message Empty {}
+
+// node_id -> share of READ traffic. Normalised on receipt, so callers may pass
+// raw shares. Writes ignore this: they always go to the current Raft leader.
+message WeightTable { map<string, double> weights = 1; }
+
+message WeightReply { bool ok = 1; string detail = 2; }
+
+message RateRequest { double rps = 1; }
+
+message StatsReply {
+  double target_rps    = 1;
+  string leader        = 2;
+  int64  sent          = 3;
+  int64  ok            = 4;
+  int64  failed        = 5;
+  int64  timed_out     = 6;
+}
