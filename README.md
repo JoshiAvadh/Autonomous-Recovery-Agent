@@ -2,20 +2,11 @@
 
 An LLM-driven self-healing agent for distributed clusters. It watches live telemetry, works out what has failed **without being told**, decides how to recover, and carries out the fix against real containers: real Raft consensus, a real Kafka backbone, real `docker restart`s, real `iptables` partitions.
 
-> **The question this project answers:** can a recovery policy developed in simulation make correct, measurable decisions against a real distributed system, when it has to diagnose the failure itself with no ground-truth labels?
+> **The question this project answers:** can an autonomous agent make correct, measurable recovery decisions against a real distributed system, when it has to diagnose the failure itself with no ground-truth labels?
 
 ```
 real telemetry ──► diagnosis ──► hybrid policy (rules + LLM) ──► real async action ──► independent evaluation
 ```
-
-The project has two halves that share one decision brain:
-
-| | What it is | Where |
-|---|---|---|
-| **Simulation lab** | A SimPy discrete-event model of a 5/10/20-node cluster, used to develop and benchmark the recovery policy cheaply and reproducibly | repo root |
-| **Live cluster** | A real, containerized cluster (Docker + Raft + Kafka) where the **same, unmodified** policy files run against real failures | [`live_cluster/`](live_cluster/) |
-
-The live agent imports `rule_based.py`, `llm_agent.py`, `scorer.py`, `predictor.py` and `decision_memory.py` straight from the repo root. Nothing is copied or forked, so the system tested in simulation is the system running live.
 
 ---
 
@@ -24,7 +15,7 @@ The live agent imports `rule_based.py`, `llm_agent.py`, `scorer.py`, `predictor.
 ### 1. Diagnose: no labels allowed
 Every node publishes health at 1 Hz to `cluster.health`. The agent's classifier reads only that stream and produces a `FailureDiagnosis` (type, target, confidence, evidence) over a rolling window.
 
-The failure injector publishes ground truth to `cluster.failures`, and **the agent never subscribes to it**. If the agent could see labels, the project would reduce to "given a labeled failure, pick an action", which the simulator already answers. Ground truth is used only by the offline evaluator.
+The failure injector publishes ground truth to `cluster.failures`, and **the agent never subscribes to it**. Ground truth is used only by the offline evaluator, so the agent has to work out what went wrong on its own.
 
 ### 2. Decide: tiered hybrid routing
 | Confidence | Who decides | Why |
@@ -44,7 +35,7 @@ Decisions are published as intents to `cluster.actions`. The executor validates 
 | `isolate_node` | gRPC `AdminAction(ISOLATE)` + iptables |
 | `reroute_traffic` / `rebalance_load` | Load-generator `SetWeights` |
 | `load_shed` / `readmit` | Reject new client requests but **keep Raft participation** |
-| `promote_replica` | Forced leader step-down → a real election (Raft picks the winner, not us) |
+| `promote_replica` | Forced leader step-down → a real election (Raft picks the winner) |
 | `monitor_only` | No-op |
 
 ### 4. Score and learn
@@ -52,7 +43,7 @@ Every decision is scored a few seconds after it runs on **speed (35%) + stabilit
 
 ---
 
-## Live cluster architecture
+## Architecture
 
 ```
   failure_injector ──► ┌──────────── Docker network ────────────┐
@@ -78,17 +69,17 @@ Every decision is scored a few seconds after it runs on **speed (35%) + stabilit
 
 ## Failure types
 
-| Failure | Injected for real by | Simulated as |
-|---|---|---|
-| Crash | `docker kill` | Node offline, health → 0% |
-| Network partition | `iptables` link cut between two nodes | Bidirectional link cut |
-| Latency spike | `tc netem` delay on one node | Response times ×2–5 |
-| Memory leak | Growing RSS inside the container (bounded by `mem_limit`) | Health drains 3–8%/tick |
-| CPU overload | Busy-loop workers | Load spikes 30–60% |
+| Failure | How it's injected |
+|---|---|
+| Crash | `docker kill` |
+| Network partition | `iptables` link cut between two nodes |
+| Latency spike | `tc netem` delay on one node |
+| Memory leak | Growing RSS inside the container (bounded by `mem_limit`) |
+| CPU overload | Busy-loop workers |
 
 ## Status
 
-All live-cluster phases are complete, with every gate green:
+Every phase is complete and every gate is green:
 
 | Phase | Gate result |
 |---|---|
@@ -99,16 +90,7 @@ All live-cluster phases are complete, with every gate green:
 | Full action set | G8 18/18 |
 | Live dashboard | built |
 
-Fixture suites: 22 classifier cases and 15 action-aware validation cases. The design, contracts, measurements and gate audits are written up in [`plan.md`](plan.md).
-
-### Simulation results
-In the simulation lab, according to the project's benchmark runs:
-- The **LLM outperforms rules by 12–23 points** on complex multi-failure scenarios
-- **Memory-leak MTTR drops from ~17 ticks to ~5** through early intervention
-- **Cross-run learning converges**: the LLM stops choosing low-scoring actions after seeing their outcomes
-- **Rules stay competitive** on simple single-failure cases, at zero API cost
-
-Absolute scores are not directly comparable between simulation and the live cluster: time is ticks in one and seconds in the other, and the telemetry windows differ. See `plan.md` §8.3.
+Fixture suites: 22 classifier cases and 15 action-aware validation cases.
 
 ---
 
@@ -116,15 +98,15 @@ Absolute scores are not directly comparable between simulation and the live clus
 
 ### Prerequisites
 - Python 3.9+
-- Docker with Compose v2 (for the live cluster)
+- Docker with Compose v2
 - A [Groq API key](https://console.groq.com/) (for the LLM tiers)
 
-Create a `.env` file in the repo root, and also in `live_cluster/` for the live agent:
+Create a `.env` file in `live_cluster/`:
 ```
 GROQ_API_KEY=your_api_key_here
 ```
 
-### Live cluster
+### Run it
 ```bash
 cd live_cluster
 python3 generate_compose.py --nodes 5      # renders docker-compose.yml
@@ -147,26 +129,14 @@ docker compose down
 ```
 Run any phase gate with `python3 scripts/gate<N>.py` (gate 1 is `./scripts/gate1.sh`).
 
-### Simulation lab
-```bash
-pip install simpy groq python-dotenv matplotlib pillow flask
-
-python main.py                       # one simulation run
-python app.py                        # web dashboard for running simulations
-python benchmark.py 5,10 3           # cluster sizes 5 and 10, 3 seeds each
-python compare.py                    # LLM vs rules-only
-python generated_charts.py           # charts for 5/10-node results
-python generated_charts_20nodes.py   # charts for 20-node results
-```
-
 ---
 
 ## Project structure
 
 ```
-├── live_cluster/              Real containerized cluster
+├── live_cluster/
 │   ├── node/                  gRPC node service, Raft status, health, peer probes
-│   ├── recovery_agent/        Classifier, incidents, policy bridge, outcome tracking
+│   ├── recovery_agent/        Classifier, incidents, policy, outcome tracking
 │   ├── executor/              Validation, action execution, write-ahead transition log
 │   ├── failure_injector/      Real chaos: kill, iptables, tc, leak, cpu
 │   ├── load_generator/        Weighted client traffic (SetWeights)
@@ -176,27 +146,14 @@ python generated_charts_20nodes.py   # charts for 20-node results
 │   ├── scripts/               Phase gates 1–8
 │   └── tests/                 Classifier and action-aware validation fixtures
 │
-├── rule_based.py              Rule engine: confidence scoring, tiered routing   ┐
-├── llm_agent.py               LLM agent: Groq, chain-of-thought, load shedding   │ shared
-├── scorer.py                  4-component decision scoring                       │ decision
-├── predictor.py               Health-trend failure prediction                    │ brain
-├── decision_memory.py         Cross-run learning                                 ┘
+├── rule_based.py              Rule engine: confidence scoring, tiered routing
+├── llm_agent.py               LLM agent: Groq, chain-of-thought, load shedding
+├── scorer.py                  4-component decision scoring
+├── predictor.py               Health-trend failure prediction
+├── decision_memory.py         Cross-run learning
 ├── feedback.py                Success checks and follow-up actions
-├── main.py · network.py       Simulation loop and cluster model (SimPy)
-├── failures.py                Simulated fault injector, 7-phase scenario
-├── cluster_config.py · config.py · event_bus.py · logger.py
-├── app.py · templates/        Simulation web dashboard (Flask)
-├── benchmark.py · compare.py  Automated benchmarking
-├── generated_charts*.py       Chart generation (output in charts/, charts_20/)
-└── plan.md                    Full design doc: contracts, phases, measurements
+└── config.py                  API keys, feature flags, thresholds
 ```
 
-## Honest limits
-
-- **Localhost only.** The executor mounts `/var/run/docker.sock`, which gives root-equivalent control of the host. Never expose this stack beyond your machine.
-- **The control plane is not highly available.** Kafka is single-broker, and there is one agent and one executor. The thesis is about decision quality, not control-plane fault tolerance.
-- **Raft won't take orders.** `promote_replica` triggers a real election, but the cluster picks the winner. The agent logs the intended and actual outcomes separately.
-- **Partition detection is easier here than in production** (`plan.md` §5.6).
-
 ## Tech stack
-Python · Docker Compose · Apache Kafka (KRaft) · pysyncobj (Raft) · gRPC · Groq (Llama 3.3-70B) · SimPy · Flask · scipy · matplotlib
+Python · Docker Compose · Apache Kafka (KRaft) · pysyncobj (Raft) · gRPC · Groq (Llama 3.3-70B) · scipy
